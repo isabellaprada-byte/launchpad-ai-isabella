@@ -52,7 +52,8 @@ Severity levels:
 
 ## Critical rules
 
-- Do NOT report a pending amendment as the current plan value. If the document says "effective January 1, 2027, the auto-enrollment rate will increase to 6%", report the current rate, not the future one — and add a flag.
+- Do NOT report a pending amendment as the current plan value.
+- For `safe_harbor`: if any section of the document uses Safe Harbor language but the plan is ultimately determined to NOT be a Safe Harbor plan, add a warning flag noting the contradictory language and which section it appears in. If the document says "effective January 1, 2027, the auto-enrollment rate will increase to 6%", report the current rate, not the future one — and add a flag.
 - Do NOT hallucinate fields. If a field is genuinely absent from the document, return null + low confidence.
 - The `employer_match_formula` must capture the exact formula, not a summary. "100% of first 3% + 50% of next 2%" is correct; "up to 4%" is not.
 

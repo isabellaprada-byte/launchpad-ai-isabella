@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PlanUpload } from "@/components/plan-upload";
 import { PlanReview } from "@/components/plan-review";
@@ -31,13 +31,23 @@ export type PlanData = {
 
 export default function PlanPage() {
   const [plan, setPlan] = useState<PlanData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/plan/get")
+      .then((r) => r.json())
+      .then((json) => { if (json.data) setPlan(json.data); })
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <DashboardShell
       title="Plan Details"
       description="Upload the plan PDF and review extracted fields"
     >
-      {plan ? (
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : plan ? (
         <PlanReview plan={plan} onPlanUpdate={setPlan} />
       ) : (
         <PlanUpload onExtracted={setPlan} />
