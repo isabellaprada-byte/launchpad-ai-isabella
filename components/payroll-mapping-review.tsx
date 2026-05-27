@@ -103,7 +103,7 @@ export function PayrollMappingReview({
                 <TableCell>
                   <Select
                     value={m.suggested_target ?? "none"}
-                    onValueChange={(v) => updateTarget(m.source_column, v)}
+                    onValueChange={(v) => updateTarget(m.source_column, v ?? "none")}
                   >
                     <SelectTrigger className="h-8 w-52 text-xs">
                       <SelectValue />
