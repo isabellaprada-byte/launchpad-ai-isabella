@@ -86,7 +86,7 @@ export default function AuditPage() {
     >
       <div className="space-y-4">
         <div className="flex gap-3">
-          <Select value={actionFilter} onValueChange={setActionFilter}>
+          <Select value={actionFilter} onValueChange={(v) => setActionFilter(v ?? "all")}>
             <SelectTrigger className="w-52">
               <SelectValue placeholder="Filter by action" />
             </SelectTrigger>
@@ -98,7 +98,7 @@ export default function AuditPage() {
             </SelectContent>
           </Select>
 
-          <Select value={actorFilter} onValueChange={setActorFilter}>
+          <Select value={actorFilter} onValueChange={(v) => setActorFilter(v ?? "all")}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Filter by actor" />
             </SelectTrigger>

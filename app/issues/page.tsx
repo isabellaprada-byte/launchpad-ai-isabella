@@ -119,7 +119,7 @@ export default function IssuesPage() {
     >
       <div className="space-y-4">
         <div className="flex gap-3">
-          <Select value={severityFilter} onValueChange={setSeverityFilter}>
+          <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v ?? "all")}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Severity" />
             </SelectTrigger>
@@ -130,7 +130,7 @@ export default function IssuesPage() {
               <SelectItem value="info">Info</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
