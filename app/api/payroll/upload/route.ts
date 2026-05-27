@@ -24,8 +24,9 @@ export async function POST(request: Request) {
 
     const csvText = await file.text();
     const { headers, rows } = parseCSV(csvText);
+    const supabase = getSupabase();
 
-    const { data: run, error } = await getSupabase()
+    const { data: run, error } = await supabase
       .from("payroll_runs")
       .insert({ run_number: runNumber, file_name: file.name, status: "uploaded" })
       .select()
@@ -42,6 +43,55 @@ export async function POST(request: Request) {
       payroll_run_id: run.id,
       reason: `Uploaded payroll run ${runNumber}: ${file.name}`,
     });
+
+    // For runs 2+, auto-apply the approved mapping and save records immediately
+    if (runNumber > 1) {
+      const { data: mappings, error: mapError } = await supabase
+        .from("payroll_mappings")
+        .select("*")
+        .eq("status", "approved");
+
+      if (mapError) throw mapError;
+
+      if (mappings && mappings.length > 0) {
+        const targetToSource = Object.fromEntries(
+          mappings.filter((m) => m.target_field).map((m) => [m.target_field, m.source_column])
+        );
+
+        const getNum = (row: Record<string, string>, field: string) => {
+          const val = row[targetToSource[field]];
+          return val ? parseFloat(val) || null : null;
+        };
+
+        const payrollRecords = rows.map((row) => ({
+          payroll_run_id: run.id,
+          employee_id: row[targetToSource["employee_id"]] ?? null,
+          raw_row: row,
+          mapped_row: Object.fromEntries(
+            mappings
+              .filter((m) => m.target_field)
+              .map((m) => [m.target_field, row[m.source_column] ?? null])
+          ),
+          gross_wages: getNum(row, "gross_wages"),
+          pretax_contribution: getNum(row, "pretax_contribution"),
+          roth_contribution: getNum(row, "roth_contribution"),
+          employer_match: getNum(row, "employer_match"),
+          loan_repayment: getNum(row, "loan_repayment"),
+          pay_date: row[targetToSource["pay_date"]] || null,
+        }));
+
+        const { error: recordsError } = await supabase
+          .from("payroll_records")
+          .insert(payrollRecords);
+
+        if (recordsError) throw recordsError;
+
+        await supabase
+          .from("payroll_runs")
+          .update({ status: "mapped" })
+          .eq("id", run.id);
+      }
+    }
 
     return NextResponse.json({ data: { run, headers, rows } });
   } catch (err) {
