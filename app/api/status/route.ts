@@ -21,9 +21,9 @@ export async function GET() {
       runsCount,
       issuesResult,
       auditCount,
-      chatCount,
+      chatResult,
     ] = await Promise.all([
-      getSupabase().from("plans").select("status").limit(1).maybeSingle(),
+      getSupabase().from("plans").select("status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
       count("participants"),
       getSupabase()
         .from("payroll_mappings")
@@ -36,12 +36,16 @@ export async function GET() {
         .select("status")
         .limit(100),
       count("audit_logs"),
-      count("chat_messages"),
+      getSupabase()
+        .from("audit_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("action", "CHAT_QUESTION_ASKED"),
     ]);
 
     if (plansResult.error) throw plansResult.error;
     if (mappingsResult.error) throw mappingsResult.error;
     if (issuesResult.error) throw issuesResult.error;
+    if (chatResult.error) throw chatResult.error;
 
     const planStatus = plansResult.data?.status;
     let plan_details: ModuleStatus = "not_started";
@@ -77,7 +81,7 @@ export async function GET() {
     if (auditCount > 0) audit_trail = "in_progress";
 
     let ai_assistant: ModuleStatus = "not_started";
-    if (chatCount > 0) ai_assistant = "in_progress";
+    if ((chatResult.count ?? 0) > 0) ai_assistant = "in_progress";
 
     const workflowStatuses: ModuleStatus[] = [
       plan_details,
