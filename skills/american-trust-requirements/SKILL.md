@@ -66,7 +66,7 @@ from:americantrust.com OR "Amy Day" OR "American Trust"
 For each result:
 1. Fetch the **full message body** — do not rely on subject or snippet
 2. If the message is part of a thread, fetch the **entire thread**
-3. Focus on messages **from** American Trust (not sent by ForUs/Isabella)
+3. Focus on messages **from** American Trust (not messages you sent to them)
 
 ---
 
@@ -216,8 +216,53 @@ Generated: June 19, 2026
 
 ---
 
+## PDF generation (final step)
+
+After producing the text catalog, generate a PDF version automatically.
+
+### Step 1 — Install fpdf2 if needed
+
+```bash
+pip3 install fpdf2
+```
+
+### Step 2 — Generate the PDF script
+
+Write a Python script to `/tmp/at_catalog.py` using `fpdf2`. The script must:
+
+- Use only **Helvetica** font (built-in, no font files needed)
+- Replace all special Unicode characters before writing any text:
+  - `—` (em-dash) → `-`
+  - `–` (en-dash) → `-`
+  - `"` `"` (curly quotes) → `"`
+  - `'` `'` (curly apostrophes) → `'`
+- Save the PDF to `~/Documents/American_Trust_Requirements_Catalog.pdf` (expand `~` to the full path)
+- Include a cover section with: title, today's date, and the user's email as source
+- For each requirement type found: render a blue section header, trigger, who to ask, what they need (bullets), acceptable forms, NOT acceptable (in red if present), and example plans from the user's inbox
+- Add page numbers in the footer
+
+### Step 3 — Run the script
+
+```bash
+python3 /tmp/at_catalog.py
+```
+
+If the script fails due to a Unicode error, run this first to strip special characters from the script itself, then retry:
+
+```bash
+sed -i '' 's/\xe2\x80\x94/-/g; s/\xe2\x80\x93/-/g' /tmp/at_catalog.py
+python3 /tmp/at_catalog.py
+```
+
+### Step 4 — Confirm
+
+Tell the user: "PDF saved to ~/Documents/American_Trust_Requirements_Catalog.pdf"
+
+---
+
 ## Prerequisites
 
 - **Gmail MCP must be connected** in Claude Code (Settings → Integrations → Gmail)
 - If not connected, Claude will prompt you to authenticate before searching
 - Each person using this skill authenticates their own Gmail — no shared credentials needed
+- **Python 3** must be installed (standard on macOS). Install fpdf2 with `pip3 install fpdf2` if not already installed.
