@@ -2,14 +2,52 @@ import { NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 import { writeAuditLog } from "@/lib/audit";
 
-function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
-  const lines = text.trim().split("\n");
-  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-  const rows = lines.slice(1).map((line) => {
-    const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
-    return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""]));
-  });
-  return { headers, rows };
+function splitCSVLine(line: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  values.push(current.trim());
+  return values;
+}
+
+function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[]; warning?: string } {
+  if (!text.trim()) throw new Error("CSV file is empty");
+
+  // normalize Windows line endings
+  const lines = text.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(l => l.trim());
+  if (lines.length === 0) throw new Error("CSV file has no content");
+
+  const headers = splitCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ""));
+
+  if (headers.every(h => !isNaN(Number(h)) || /^\d{4}-\d{2}-\d{2}$/.test(h))) {
+    throw new Error("CSV appears to have no header row — first row contains data values, not column names");
+  }
+
+  const emptyHeaders = headers.filter(h => !h);
+  if (emptyHeaders.length > 0) {
+    throw new Error(`CSV has ${emptyHeaders.length} empty column header(s) — check for extra commas in the header row`);
+  }
+
+  const rows = lines.slice(1)
+    .filter(line => line.trim())
+    .map(line => {
+      const values = splitCSVLine(line).map(v => v.replace(/^"|"$/g, ""));
+      return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""]));
+    });
+
+  const warning = rows.length === 0 ? "CSV has headers but no data rows" : undefined;
+  return { headers, rows, ...(warning ? { warning } : {}) };
 }
 
 export async function POST(request: Request) {

@@ -1,0 +1,4 @@
+Pay Date,Last Name,Roth 401k,Gross Pay,Loan Payment,First Name,Status,ER Match,EE ID,Pre-tax 401k,Email
+2026-06-15,Smith,0.00,5000.00,0.00,Jane,Active,75.00,E001,150.00,jane.smith@acme.com
+2026-06-15,Doe,50.00,4800.00,0.00,John,Active,72.00,E002,144.00,john.doe@acme.com
+2026-06-15,Lopez,0.00,6200.00,100.00,Ana,Active,93.00,E003,186.00,ana.lopez@acme.com
