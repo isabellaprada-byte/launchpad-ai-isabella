@@ -297,8 +297,8 @@ export default function UploadPage() {
                     { icon: '🏠', label: 'Address, City, State, and ZIP', note: '' },
                     { icon: '📅', label: 'Date of Birth', note: 'Format: MM/DD/YYYY' },
                     { icon: '📅', label: 'Date of Hire', note: 'Format: MM/DD/YYYY' },
-                    { icon: '✉️', label: 'Work Email', note: 'Format: name@company.com' },
-                    { icon: '📞', label: 'Phone Number', note: 'Include country code: +1 5551234567' },
+                    { icon: '✉️', label: 'Email', note: 'Work email preferred — e.g. name@company.com' },
+                    { icon: '📞', label: 'Phone Number', note: 'Include country code — e.g. +1 5551234567' },
                   ].map(({ icon, label, note }) => (
                     <div key={label} className="flex items-start gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3">
                       <span className="text-lg shrink-0">{icon}</span>
@@ -324,17 +324,26 @@ export default function UploadPage() {
                 </div>
               </div>
 
+              {/* Extra info note */}
+              <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 flex items-start gap-3">
+                <svg className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-slate-500">
+                  <span className="font-medium text-slate-700">Additional columns are always helpful.</span> If your file includes gender, middle initial, division, termination date, rehire date, or contribution amounts — include them. The more complete the file, the faster we can process your census.
+                </p>
+              </div>
+
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <a
-                  href="/census-template.csv"
-                  download="ForUsAll-Census-Template.csv"
+                  href="/api/census/template"
                   className="flex items-center justify-center gap-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-xl px-6 py-3 text-sm font-medium transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Download census template
+                  Download census template (.xlsx)
                 </a>
                 <Button
                   size="lg"
