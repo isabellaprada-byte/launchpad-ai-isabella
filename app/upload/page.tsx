@@ -8,7 +8,7 @@ import { PreviewTable } from '@/components/census/PreviewTable';
 import type { ValidationFlag } from '@/lib/census/validator';
 import type { CensusEmployee } from '@/lib/census/processor';
 
-type Step = 'input' | 'validating' | 'review' | 'confirming-missing' | 'previewing' | 'preview' | 'submitting' | 'done' | 'error';
+type Step = 'welcome' | 'input' | 'validating' | 'review' | 'confirming-missing' | 'previewing' | 'preview' | 'submitting' | 'done' | 'error';
 
 interface ValidationResult {
   employeeCount: number;
@@ -25,6 +25,7 @@ const STEPS = [
 ];
 
 function stepIndex(step: Step): number {
+  if (step === 'welcome') return -1;
   if (step === 'validating') return 0;
   if (step === 'previewing') return 2;
   if (step === 'submitting') return 2;
@@ -32,7 +33,7 @@ function stepIndex(step: Step): number {
 }
 
 export default function UploadPage() {
-  const [step, setStep] = useState<Step>('input');
+  const [step, setStep] = useState<Step>('welcome');
   const [sponsorName, setSponsorName] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [uploaderEmail, setUploaderEmail] = useState('');
@@ -215,7 +216,7 @@ export default function UploadPage() {
   }
 
   function reset() {
-    setStep('input'); setSponsorName(''); setUploaderName(''); setUploaderEmail(''); setFile(null);
+    setStep('welcome'); setSponsorName(''); setUploaderName(''); setUploaderEmail(''); setFile(null);
     setValidation(null); setResolvedFlags({}); setPerEmployeeFixes({}); setUploaderEmailError('');
     setShowReplaceWarning(false); setReplaceExisting(false);
     setPreviewEmployees([]); setDownloadInfo(null); setErrorMsg('');
@@ -242,105 +243,113 @@ export default function UploadPage() {
 
       <div className="max-w-6xl mx-auto px-8 py-10 space-y-8">
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-0">
-          {STEPS.map((s, i) => {
-            const isDone = i < currentStepIdx;
-            const isActive = i === currentStepIdx;
-            return (
-              <div key={s.key} className="flex items-center flex-1 last:flex-none">
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors
-                    ${isDone ? 'bg-blue-600 text-white' : isActive ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-slate-200 text-slate-400'}`}>
-                    {isDone ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : i + 1}
+        {/* Step indicator — hidden on welcome screen */}
+        {step !== 'welcome' && (
+          <div className="flex items-center gap-0">
+            {STEPS.map((s, i) => {
+              const isDone = i < currentStepIdx;
+              const isActive = i === currentStepIdx;
+              return (
+                <div key={s.key} className="flex items-center flex-1 last:flex-none">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors
+                      ${isDone ? 'bg-blue-600 text-white' : isActive ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-slate-200 text-slate-400'}`}>
+                      {isDone ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : i + 1}
+                    </div>
+                    <span className={`text-xs font-medium ${isActive ? 'text-blue-600' : isDone ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {s.label}
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium ${isActive ? 'text-blue-600' : isDone ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {s.label}
-                  </span>
+                  {i < STEPS.length - 1 && (
+                    <div className={`flex-1 h-0.5 mb-5 mx-2 ${i < currentStepIdx ? 'bg-blue-600' : 'bg-slate-200'}`} />
+                  )}
                 </div>
-                {i < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 mb-5 mx-2 ${i < currentStepIdx ? 'bg-blue-600' : 'bg-slate-200'}`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Main card */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
-          {/* ── Upload ── */}
-          {(step === 'input' || step === 'validating') && (
-            <div className="p-8 space-y-6">
-              {/* Welcome & Instructions */}
-              <div className="rounded-2xl bg-blue-50 border border-blue-200 p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-base font-semibold text-blue-900">Welcome — before you upload</h2>
-                    <p className="text-sm text-blue-700 mt-0.5">Please read these instructions to avoid issues with your submission.</p>
-                  </div>
-                </div>
+          {/* ── Welcome / Instructions ── */}
+          {step === 'welcome' && (
+            <div className="p-10 space-y-8">
+              {/* Header */}
+              <div className="text-center space-y-2">
+                <h2 className="text-3xl font-bold text-slate-900">Welcome to ForUsAll</h2>
+                <p className="text-slate-500 text-base max-w-xl mx-auto">
+                  This is the secure page to submit your employee census. Please read the instructions below before uploading your file.
+                </p>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* File format */}
-                  <div className="bg-white rounded-xl border border-blue-100 p-4 space-y-1.5">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Accepted formats</p>
-                    <p className="text-sm text-slate-700">Excel <span className="text-slate-400">(.xlsx, .xls)</span> or CSV <span className="text-slate-400">(.csv)</span></p>
-                    <p className="text-xs text-slate-400">PDFs are not accepted.</p>
-                  </div>
-
-                  {/* Required fields */}
-                  <div className="bg-white rounded-xl border border-blue-100 p-4 space-y-1.5 md:col-span-1">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Required fields</p>
-                    <div className="flex flex-wrap gap-1">
-                      {['SSN','First Name','Last Name','Street Address','City','State','ZIP','Date of Birth','Date of Hire','Email','Phone'].map(f => (
-                        <span key={f} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-md px-2 py-0.5">{f}</span>
-                      ))}
+              {/* Required fields */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
+                <p className="font-semibold text-slate-800 text-base">We need the following information for all your employees:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { icon: '🔐', label: 'Social Security Number (SSN)', note: 'Format: XXX-XX-XXXX' },
+                    { icon: '👤', label: 'First Name & Last Name', note: '' },
+                    { icon: '🏠', label: 'Address, City, State, and ZIP', note: '' },
+                    { icon: '📅', label: 'Date of Birth', note: 'Format: MM/DD/YYYY' },
+                    { icon: '📅', label: 'Date of Hire', note: 'Format: MM/DD/YYYY' },
+                    { icon: '✉️', label: 'Work Email', note: 'Format: name@company.com' },
+                    { icon: '📞', label: 'Phone Number', note: 'Include country code: +1 5551234567' },
+                  ].map(({ icon, label, note }) => (
+                    <div key={label} className="flex items-start gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3">
+                      <span className="text-lg shrink-0">{icon}</span>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{label}</p>
+                        {note && <p className="text-xs text-slate-400 mt-0.5 font-mono">{note}</p>}
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Date format */}
-                  <div className="bg-white rounded-xl border border-blue-100 p-4 space-y-1.5">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Date format</p>
-                    <p className="text-sm text-slate-700">Use <span className="font-semibold font-mono">MM/DD/YYYY</span></p>
-                    <p className="text-xs text-slate-500">
-                      Example: <span className="font-mono text-slate-700">01/15/1990</span><br/>
-                      <span className="text-slate-400">(Date of Birth &amp; Date of Hire)</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Phone format — full width row */}
-                <div className="bg-white rounded-xl border border-blue-100 p-4 flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Phone number format</p>
-                    <p className="text-sm text-slate-700 mt-0.5">
-                      Include the country code: <span className="font-mono font-semibold">+[code] [number]</span>
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      US example: <span className="font-mono text-slate-700">+1 5551234567</span>
-                      <span className="text-slate-400"> (the +1 will be removed automatically)</span><br/>
-                      International example: <span className="font-mono text-slate-700">+52 5551234567</span>
-                      <span className="text-slate-400"> (country code kept, + removed)</span>
-                    </p>
-                  </div>
+                  ))}
                 </div>
               </div>
 
+              {/* Accepted formats + verification note */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-1.5">
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Accepted file formats</p>
+                  <p className="text-sm text-slate-700">Excel <span className="text-slate-400">(.xlsx, .xls)</span> or CSV <span className="text-slate-400">(.csv)</span></p>
+                  <p className="text-xs text-slate-400">PDFs are not accepted.</p>
+                </div>
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-1.5">
+                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">What happens next</p>
+                  <p className="text-sm text-slate-700">We will verify that all information is complete and accurate for each participant before processing your census.</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <a
+                  href="/census-template.csv"
+                  download="ForUsAll-Census-Template.csv"
+                  className="flex items-center justify-center gap-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-xl px-6 py-3 text-sm font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download census template
+                </a>
+                <Button
+                  size="lg"
+                  className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-base font-semibold"
+                  onClick={() => setStep('input')}
+                >
+                  I'm ready — upload my file →
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Upload ── */}
+          {(step === 'input' || step === 'validating') && (
+            <div className="p-8 space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-slate-800">Upload your employee census</h2>
                 <p className="text-slate-500 mt-1">We'll validate your data and flag any issues before submitting.</p>

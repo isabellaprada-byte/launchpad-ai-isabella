@@ -28,12 +28,34 @@ export function ValidationPanel({
 
   const DATE_FIELDS = new Set(['dob', 'doh', 'termDate', 'rehireDate']);
   const DATE_RE = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/;
+  const SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const ZIP_RE = /^\d{5}(-\d{4})?$/;
 
-  function validateDateField(field: string, value: string): string {
-    if (DATE_FIELDS.has(field) && value.trim() && !DATE_RE.test(value.trim())) {
-      return 'Please use MM/DD/YYYY format — e.g. 01/15/1990';
-    }
+  const FIELD_HINTS: Record<string, string> = {
+    dob:        'Format: MM/DD/YYYY — e.g. 01/15/1990',
+    doh:        'Format: MM/DD/YYYY — e.g. 03/01/2020',
+    termDate:   'Format: MM/DD/YYYY — e.g. 06/30/2023',
+    rehireDate: 'Format: MM/DD/YYYY — e.g. 01/15/2024',
+    ssn:        'Format: XXX-XX-XXXX — e.g. 123-45-6789',
+    phone:      'Include country code — e.g. +1 5551234567 (US) or +52 5551234567 (International)',
+    email:      'Format: name@company.com',
+    zip:        'Format: 5 digits — e.g. 12345',
+  };
+
+  function validateFieldFormat(field: string, value: string): string {
+    const v = value.trim();
+    if (!v) return '';
+    if (DATE_FIELDS.has(field) && !DATE_RE.test(v)) return 'Please use MM/DD/YYYY format — e.g. 01/15/1990';
+    if (field === 'ssn' && !SSN_RE.test(v)) return 'Please use XXX-XX-XXXX format — e.g. 123-45-6789';
+    if (field === 'email' && !EMAIL_RE.test(v)) return 'Please enter a valid email — e.g. name@company.com';
+    if (field === 'zip' && !ZIP_RE.test(v)) return 'Please enter a 5-digit ZIP — e.g. 12345';
     return '';
+  }
+
+  // Keep backward compat alias used in bulk section
+  function validateDateField(field: string, value: string): string {
+    return validateFieldFormat(field, value);
   }
 
   if (flags.length === 0) return null;
@@ -112,8 +134,8 @@ export function ValidationPanel({
                   {employeeNames && employeeNames.length > 0 && employeeNames.length <= 50 && (
                     <>
                       <p className="text-xs text-slate-500 mt-1 mb-2">Enter {flag.fieldLabel} for each participant:</p>
-                      {DATE_FIELDS.has(flag.field) && (
-                        <p className="text-xs text-slate-400 mb-1">Format: MM/DD/YYYY — e.g. 01/15/1990</p>
+                      {FIELD_HINTS[flag.field] && (
+                        <p className="text-xs text-slate-400 mb-1">{FIELD_HINTS[flag.field]}</p>
                       )}
                       <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
                         {employeeNames.map((emp, idx) => {
@@ -267,12 +289,12 @@ export function ValidationPanel({
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          placeholder={DATE_FIELDS.has(flag.field) ? 'MM/DD/YYYY' : `Enter correct ${flag.fieldLabel}`}
+                          placeholder={FIELD_HINTS[flag.field] ? FIELD_HINTS[flag.field].split(' — ')[0].replace('Format: ', '') : `Enter correct ${flag.fieldLabel}`}
                           value={editValues[flag.id] ?? flag.currentValue ?? ''}
                           onChange={e => {
                             const val = e.target.value;
                             setEditValues(prev => ({ ...prev, [flag.id]: val }));
-                            setInputErrors(prev => ({ ...prev, [flag.id]: validateDateField(flag.field, val) }));
+                            setInputErrors(prev => ({ ...prev, [flag.id]: validateFieldFormat(flag.field, val) }));
                           }}
                           className={`flex-1 border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 ${inputErrors[flag.id] ? 'border-red-400 focus:ring-red-400' : 'border-slate-300 focus:ring-blue-500'}`}
                         />
@@ -281,7 +303,7 @@ export function ValidationPanel({
                           className="rounded-lg bg-blue-600 hover:bg-blue-700"
                           onClick={() => {
                             const val = editValues[flag.id];
-                            const err = validateDateField(flag.field, val ?? '');
+                            const err = validateFieldFormat(flag.field, val ?? '');
                             if (err) { setInputErrors(prev => ({ ...prev, [flag.id]: err })); return; }
                             onResolve(flag.id, 'fixed', val);
                             toggle(flag.id);
@@ -291,8 +313,8 @@ export function ValidationPanel({
                           Fix it
                         </Button>
                       </div>
-                      {DATE_FIELDS.has(flag.field) && !inputErrors[flag.id] && (
-                        <p className="text-xs text-slate-400">Format: MM/DD/YYYY — e.g. 01/15/1990</p>
+                      {FIELD_HINTS[flag.field] && !inputErrors[flag.id] && (
+                        <p className="text-xs text-slate-400">{FIELD_HINTS[flag.field]}</p>
                       )}
                       {inputErrors[flag.id] && (
                         <p className="text-xs text-red-500">{inputErrors[flag.id]}</p>
