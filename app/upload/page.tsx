@@ -68,7 +68,10 @@ export default function UploadPage() {
     if (!skipExistingCheck) {
       setStep('validating');
       try {
-        const checkRes = await fetch(`/api/census/check-email?email=${encodeURIComponent(uploaderEmail.trim())}`);
+        const checkCtrl = new AbortController();
+        const checkTimeout = setTimeout(() => checkCtrl.abort(), 8000);
+        const checkRes = await fetch(`/api/census/check-email?email=${encodeURIComponent(uploaderEmail.trim())}`, { signal: checkCtrl.signal });
+        clearTimeout(checkTimeout);
         const checkJson = await checkRes.json();
         if (checkJson.hasExisting) {
           setStep('input');
@@ -76,7 +79,7 @@ export default function UploadPage() {
           return;
         }
       } catch {
-        // If check fails, proceed anyway
+        // If check fails or times out, proceed anyway
       }
     }
 
@@ -84,11 +87,23 @@ export default function UploadPage() {
     setResolvedFlags({});
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch('/api/census/validate', { method: 'POST', body: fd });
-    const json = await res.json();
-    if (!res.ok) { setErrorMsg(json.error ?? 'Validation failed'); setStep('error'); return; }
-    setValidation(json);
-    setStep('review');
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 28000);
+      const res = await fetch('/api/census/validate', { method: 'POST', body: fd, signal: controller.signal });
+      clearTimeout(timeout);
+      const json = await res.json();
+      if (!res.ok) { setErrorMsg(json.error ?? 'Validation failed'); setStep('error'); return; }
+      setValidation(json);
+      setStep('review');
+    } catch (err) {
+      const msg = err instanceof Error && err.name === 'AbortError'
+        ? 'Validation timed out. Try a smaller file or check your connection.'
+        : 'Could not reach the server. Please try again.';
+      setErrorMsg(msg);
+      setStep('error');
+    }
   }
 
   async function handleConfirmReplace() {
