@@ -1,6 +1,4 @@
 import * as XLSX from 'exceljs';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
 import { processEmployee } from './processor';
 import type { CensusEmployee } from './processor';
 
@@ -340,6 +338,8 @@ async function parseCSV(buffer: ArrayBuffer): Promise<ParseResult> {
 const SSN_RE = /\b\d{3}-\d{2}-\d{4}\b|\b\d{9}\b/;
 
 async function parsePDF(buffer: ArrayBuffer): Promise<ParseResult> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
   const nodeBuffer: Buffer = Buffer.from(new Uint8Array(buffer));
   const data = await pdfParse(nodeBuffer);
   const text = data.text;
