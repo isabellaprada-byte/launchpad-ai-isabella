@@ -56,7 +56,7 @@ export default function UploadPage() {
   async function handleValidate(skipExistingCheck = false) {
     if (!file || !sponsorName.trim() || !uploaderName.trim() || !uploaderEmail.trim()) return;
     if (!hasFullName(uploaderName)) {
-      setUploaderNameError('Please enter your first and last name — e.g. Isabella Prada');
+      setUploaderNameError('Please enter your first and last name — e.g. Jane Smith');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(uploaderEmail.trim())) {
@@ -382,7 +382,7 @@ export default function UploadPage() {
                     onChange={e => { setUploaderName(e.target.value); if (uploaderNameError) setUploaderNameError(''); }}
                     onBlur={e => {
                       const v = e.target.value.trim();
-                      if (v && !hasFullName(v)) setUploaderNameError('Please enter your first and last name — e.g. Isabella Prada');
+                      if (v && !hasFullName(v)) setUploaderNameError('Please enter your first and last name — e.g. Jane Smith');
                       else setUploaderNameError('');
                     }}
                     placeholder="e.g. Jane Smith"
