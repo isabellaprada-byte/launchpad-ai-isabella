@@ -11,27 +11,44 @@ interface Props {
   submitting: boolean;
 }
 
-const COLS: { key: keyof CensusEmployee; label: string }[] = [
-  { key: 'ssn',       label: 'SSN' },
-  { key: 'lastName',  label: 'Last Name' },
-  { key: 'firstName', label: 'First Name' },
-  { key: 'mi',        label: 'MI' },
-  { key: 'dob',       label: 'Date of Birth' },
-  { key: 'doh',       label: 'Date of Hire' },
-  { key: 'termDate',  label: 'Term Date' },
-  { key: 'email',     label: 'Email' },
-  { key: 'phone',     label: 'Phone' },
-  { key: 'street1',   label: 'Address' },
-  { key: 'street2',   label: 'Address 2' },
-  { key: 'city',      label: 'City' },
-  { key: 'state',     label: 'State' },
-  { key: 'zip',       label: 'ZIP' },
+const ALL_COLS: { key: keyof CensusEmployee; label: string }[] = [
+  { key: 'ssn',             label: 'SSN' },
+  { key: 'lastName',        label: 'Last Name' },
+  { key: 'firstName',       label: 'First Name' },
+  { key: 'mi',              label: 'MI' },
+  { key: 'gender',          label: 'Gender' },
+  { key: 'dob',             label: 'Date of Birth' },
+  { key: 'doh',             label: 'Date of Hire' },
+  { key: 'rehireDate',      label: 'Rehire Date' },
+  { key: 'termDate',        label: 'Term Date' },
+  { key: 'email',           label: 'Email' },
+  { key: 'phone',           label: 'Phone' },
+  { key: 'street1',         label: 'Address' },
+  { key: 'street2',         label: 'Address 2' },
+  { key: 'city',            label: 'City' },
+  { key: 'state',           label: 'State' },
+  { key: 'zip',             label: 'ZIP' },
+  { key: 'maritalStatus',   label: 'Marital Status' },
+  { key: 'divisionId',      label: 'Division ID' },
+  { key: 'pretaxDeferral',  label: 'Pre-Tax Deferral' },
+  { key: 'rothAmount',      label: 'Roth Amount' },
+  { key: 'matchingAmount',  label: 'Matching Amount' },
+  { key: 'matchingSH',      label: 'Matching SH' },
+  { key: 'profitSharing',   label: 'Profit Sharing' },
+  { key: 'nonElectiveSH',   label: 'Non-Elective SH' },
+  { key: 'planCompensation',label: 'Plan Compensation' },
+  { key: 'currentHours',    label: 'Current Hours' },
+  { key: 'loanPayments',    label: 'Loan Payments' },
 ];
 
-function downloadCSV(employees: CensusEmployee[], sponsorName: string) {
-  const headers = COLS.map(c => c.label).join(',');
+function getActiveCols(employees: CensusEmployee[]) {
+  return ALL_COLS.filter(c => employees.some(emp => !!emp[c.key]));
+}
+
+function downloadCSV(employees: CensusEmployee[], sponsorName: string, cols: { key: keyof CensusEmployee; label: string }[]) {
+  const headers = cols.map(c => c.label).join(',');
   const rows = employees.map(emp =>
-    COLS.map(c => {
+    cols.map(c => {
       const v = String(emp[c.key] ?? '');
       return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v;
     }).join(',')
@@ -47,6 +64,7 @@ function downloadCSV(employees: CensusEmployee[], sponsorName: string) {
 }
 
 export function PreviewTable({ employees, sponsorName, onConfirm, onBack, submitting }: Props) {
+  const COLS = getActiveCols(employees);
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -61,7 +79,7 @@ export function PreviewTable({ employees, sponsorName, onConfirm, onBack, submit
         <Button
           variant="outline"
           size="sm"
-          onClick={() => downloadCSV(employees, sponsorName)}
+          onClick={() => downloadCSV(employees, sponsorName, COLS)}
         >
           Download copy (.csv)
         </Button>
