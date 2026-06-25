@@ -38,7 +38,7 @@ export function ValidationPanel({
     termDate:   'Format: MM/DD/YYYY — e.g. 06/30/2023',
     rehireDate: 'Format: MM/DD/YYYY — e.g. 01/15/2024',
     ssn:        'Format: XXX-XX-XXXX — e.g. 123-45-6789',
-    phone:      'Include country code — e.g. +1 5551234567 (US) or +52 5551234567 (International)',
+    phone:      'Must start with + and country code — e.g. +1 5551234567 (US) or +52 5551234567 (International)',
     email:      'Format: name@company.com',
     zip:        'Format: 5 digits — e.g. 12345',
   };
@@ -50,6 +50,10 @@ export function ValidationPanel({
     if (field === 'ssn' && !SSN_RE.test(v)) return 'Please use XXX-XX-XXXX format — e.g. 123-45-6789';
     if (field === 'email' && !EMAIL_RE.test(v)) return 'Please enter a valid email — e.g. name@company.com';
     if (field === 'zip' && !ZIP_RE.test(v)) return 'Please enter a 5-digit ZIP — e.g. 12345';
+    if (field === 'phone') {
+      if (!v.startsWith('+')) return 'Must include country code — e.g. +1 5551234567 (US) or +52 5551234567 (International)';
+      if (v.replace(/\D/g, '').length < 10) return 'Number too short — include full number with country code';
+    }
     return '';
   }
 
