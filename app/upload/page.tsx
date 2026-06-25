@@ -38,6 +38,7 @@ export default function UploadPage() {
   const [uploaderName, setUploaderName] = useState('');
   const [uploaderEmail, setUploaderEmail] = useState('');
   const [uploaderEmailError, setUploaderEmailError] = useState('');
+  const [uploaderNameError, setUploaderNameError] = useState('');
   const [showReplaceWarning, setShowReplaceWarning] = useState(false);
   const [replaceExisting, setReplaceExisting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -48,8 +49,16 @@ export default function UploadPage() {
   const [downloadInfo, setDownloadInfo] = useState<{ filename: string; base64: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  function hasFullName(name: string): boolean {
+    return name.trim().split(/\s+/).length >= 2;
+  }
+
   async function handleValidate(skipExistingCheck = false) {
     if (!file || !sponsorName.trim() || !uploaderName.trim() || !uploaderEmail.trim()) return;
+    if (!hasFullName(uploaderName)) {
+      setUploaderNameError('Please enter your first and last name — e.g. Isabella Prada');
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(uploaderEmail.trim())) {
       setUploaderEmailError('Please enter a valid email address');
       return;
@@ -218,7 +227,7 @@ export default function UploadPage() {
   function reset() {
     setStep('welcome'); setSponsorName(''); setUploaderName(''); setUploaderEmail(''); setFile(null);
     setValidation(null); setResolvedFlags({}); setPerEmployeeFixes({}); setUploaderEmailError('');
-    setShowReplaceWarning(false); setReplaceExisting(false);
+    setShowReplaceWarning(false); setReplaceExisting(false); setUploaderNameError('');
     setPreviewEmployees([]); setDownloadInfo(null); setErrorMsg('');
   }
 
@@ -370,10 +379,16 @@ export default function UploadPage() {
                   <input
                     type="text"
                     value={uploaderName}
-                    onChange={e => setUploaderName(e.target.value)}
+                    onChange={e => { setUploaderName(e.target.value); if (uploaderNameError) setUploaderNameError(''); }}
+                    onBlur={e => {
+                      const v = e.target.value.trim();
+                      if (v && !hasFullName(v)) setUploaderNameError('Please enter your first and last name — e.g. Isabella Prada');
+                      else setUploaderNameError('');
+                    }}
                     placeholder="e.g. Jane Smith"
-                    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full border rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:border-transparent ${uploaderNameError ? 'border-red-400 focus:ring-red-400' : 'border-slate-300 focus:ring-blue-500'}`}
                   />
+                  {uploaderNameError && <p className="text-sm text-red-500">{uploaderNameError}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Your email</label>
@@ -458,7 +473,7 @@ export default function UploadPage() {
                 size="lg"
                 className="w-full text-base h-12 rounded-xl bg-blue-600 hover:bg-blue-700"
                 onClick={() => handleValidate()}
-                disabled={!file || !sponsorName.trim() || !uploaderName.trim() || !uploaderEmail.trim() || !!uploaderEmailError || step === 'validating'}
+                disabled={!file || !sponsorName.trim() || !uploaderName.trim() || !uploaderEmail.trim() || !!uploaderNameError || !!uploaderEmailError || step === 'validating'}
               >
                 {step === 'validating' ? (
                   <span className="flex items-center gap-2">
