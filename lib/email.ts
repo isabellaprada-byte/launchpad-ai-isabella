@@ -33,7 +33,8 @@ export async function sendCensusNotification({
   originalFilename,
   driveFolderUrl,
 }: CensusNotificationParams): Promise<void> {
-  const to = process.env.NOTIFICATION_EMAIL ?? 'isabella.prada@forusall.com';
+  const to = (process.env.NOTIFICATION_EMAIL ?? 'isabella.prada@forusall.com')
+    .split(',').map(e => e.trim()).filter(Boolean);
 
   await resend.emails.send({
     from: 'Census Portal <onboarding@resend.dev>',
