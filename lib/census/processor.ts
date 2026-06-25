@@ -169,34 +169,44 @@ export function cleanFieldValue(field: string, value: string): string {
   }
 }
 
+const NULLISH = new Set(['n/a', 'na', 'n.a.', 'none', 'null', 'nil', '-', '--', '---', 'not applicable', 'not available']);
+
+function nullish(v: unknown): unknown {
+  if (v == null) return '';
+  const s = String(v).trim();
+  if (!s || NULLISH.has(s.toLowerCase())) return '';
+  return v;
+}
+
 export function processEmployee(raw: Record<string, unknown>): CensusEmployee {
+  const r = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, nullish(v)]));
   return {
-    ssn: cleanSSN(raw.ssn),
-    lastName: titleCase(raw.lastName),
-    firstName: titleCase(raw.firstName),
-    mi: raw.mi ? String(raw.mi).trim().charAt(0).toUpperCase() : '',
-    street1: titleCase(raw.street1),
-    street2: raw.street2 ? String(raw.street2).trim() : '',
-    city: titleCase(raw.city),
-    state: cleanState(raw.state),
-    zip: cleanZIP(raw.zip),
-    dob: cleanDate(raw.dob),
-    doh: cleanDate(raw.doh),
-    termDate: cleanDate(raw.termDate),
-    rehireDate: cleanDate(raw.rehireDate),
-    email: cleanEmail(raw.email),
-    phone: cleanPhone(raw.phone),
-    gender: raw.gender ? String(raw.gender).trim() : '',
-    divisionId: raw.divisionId ? String(raw.divisionId).trim() : '',
-    pretaxDeferral: raw.pretaxDeferral ? String(raw.pretaxDeferral) : '',
-    rothAmount: raw.rothAmount ? String(raw.rothAmount) : '',
-    matchingAmount: raw.matchingAmount ? String(raw.matchingAmount) : '',
-    matchingSH: raw.matchingSH ? String(raw.matchingSH) : '',
-    profitSharing: raw.profitSharing ? String(raw.profitSharing) : '',
-    nonElectiveSH: raw.nonElectiveSH ? String(raw.nonElectiveSH) : '',
-    planCompensation: raw.planCompensation ? String(raw.planCompensation) : '',
-    currentHours: raw.currentHours ? String(raw.currentHours) : '',
-    maritalStatus: raw.maritalStatus ? String(raw.maritalStatus) : '',
-    loanPayments: raw.loanPayments ? String(raw.loanPayments) : '',
+    ssn: cleanSSN(r.ssn),
+    lastName: titleCase(r.lastName),
+    firstName: titleCase(r.firstName),
+    mi: r.mi ? String(r.mi).trim().charAt(0).toUpperCase() : '',
+    street1: titleCase(r.street1),
+    street2: r.street2 ? String(r.street2).trim() : '',
+    city: titleCase(r.city),
+    state: cleanState(r.state),
+    zip: cleanZIP(r.zip),
+    dob: cleanDate(r.dob),
+    doh: cleanDate(r.doh),
+    termDate: cleanDate(r.termDate),
+    rehireDate: cleanDate(r.rehireDate),
+    email: cleanEmail(r.email),
+    phone: cleanPhone(r.phone),
+    gender: r.gender ? String(r.gender).trim() : '',
+    divisionId: r.divisionId ? String(r.divisionId).trim() : '',
+    pretaxDeferral: r.pretaxDeferral ? String(r.pretaxDeferral) : '',
+    rothAmount: r.rothAmount ? String(r.rothAmount) : '',
+    matchingAmount: r.matchingAmount ? String(r.matchingAmount) : '',
+    matchingSH: r.matchingSH ? String(r.matchingSH) : '',
+    profitSharing: r.profitSharing ? String(r.profitSharing) : '',
+    nonElectiveSH: r.nonElectiveSH ? String(r.nonElectiveSH) : '',
+    planCompensation: r.planCompensation ? String(r.planCompensation) : '',
+    currentHours: r.currentHours ? String(r.currentHours) : '',
+    maritalStatus: r.maritalStatus ? String(r.maritalStatus) : '',
+    loanPayments: r.loanPayments ? String(r.loanPayments) : '',
   };
 }
