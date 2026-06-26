@@ -48,7 +48,7 @@ export async function sendConfirmationEmail({
           <td style="padding:4px 0;font-size:13px;font-weight:600">${employeeCount}</td>
         </tr>
       </table>
-      <p style="font-family:sans-serif;color:#333">We will review your file and reach out if we have any questions. No further action is needed from you at this time.</p>
+      <p style="font-family:sans-serif;color:#333">We will review your file and reach out if we have any questions. Soon you will receive information about the next step, which will be the payroll integration between your payroll provider and ForUsAll. Thank you for your help!</p>
       <p style="font-family:sans-serif;color:#999;font-size:12px;margin-top:24px">Sent by Census Upload Portal — ForUsAll Implementation Team.</p>
     `,
   });
