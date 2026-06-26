@@ -29,6 +29,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (parseResult.missingRequiredHeaders && parseResult.missingRequiredHeaders.length > 0) {
+    return NextResponse.json(
+      {
+        error: `Your file is missing required columns: ${parseResult.missingRequiredHeaders.join(', ')}. Please check that your file has a header row with all required column names, or download and use the provided template.`,
+      },
+      { status: 422 },
+    );
+  }
+
   if (parseResult.employees.length === 0) {
     const isPdf = file.name.toLowerCase().endsWith('.pdf');
     return NextResponse.json(

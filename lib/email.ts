@@ -20,6 +20,40 @@ interface CensusNotificationParams {
   driveFolderUrl?: string;
 }
 
+export async function sendConfirmationEmail({
+  uploaderName,
+  uploaderEmail,
+  sponsorName,
+  employeeCount,
+}: {
+  uploaderName: string;
+  uploaderEmail: string;
+  sponsorName: string;
+  employeeCount: number;
+}): Promise<void> {
+  await resend.emails.send({
+    from: 'Census Portal <onboarding@resend.dev>',
+    to: uploaderEmail,
+    subject: `Census received — ${esc(sponsorName)}`,
+    html: `
+      <h2 style="margin:0 0 16px;font-family:sans-serif">Your census has been received!</h2>
+      <p style="font-family:sans-serif;color:#333">Thank you, <strong>${esc(uploaderName)}</strong>. We've received the employee census for <strong>${esc(sponsorName)}</strong> and our implementation team has been notified.</p>
+      <table style="margin:16px 0;border-collapse:collapse;font-family:sans-serif">
+        <tr>
+          <td style="padding:4px 12px 4px 0;color:#666;font-size:13px">Company</td>
+          <td style="padding:4px 0;font-size:13px;font-weight:600">${esc(sponsorName)}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 12px 4px 0;color:#666;font-size:13px">Employees submitted</td>
+          <td style="padding:4px 0;font-size:13px;font-weight:600">${employeeCount}</td>
+        </tr>
+      </table>
+      <p style="font-family:sans-serif;color:#333">We will review your file and reach out if we have any questions. No further action is needed from you at this time.</p>
+      <p style="font-family:sans-serif;color:#999;font-size:12px;margin-top:24px">Sent by Census Upload Portal — ForUsAll Implementation Team.</p>
+    `,
+  });
+}
+
 export async function sendCensusNotification({
   sponsorName,
   employeeCount,

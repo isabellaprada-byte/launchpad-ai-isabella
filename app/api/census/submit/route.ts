@@ -4,7 +4,7 @@ import { parseCensusFile } from '@/lib/census/parser';
 import { validateEmployees } from '@/lib/census/validator';
 import { cleanFieldValue } from '@/lib/census/processor';
 import { buildAdminPanelXlsx, buildLtTrustXlsx } from '@/lib/census/excel-writer';
-import { sendCensusNotification } from '@/lib/email';
+import { sendCensusNotification, sendConfirmationEmail } from '@/lib/email';
 import { uploadSubmissionToDrive } from '@/lib/google-drive';
 import { getSupabase } from '@/lib/supabase';
 
@@ -155,6 +155,20 @@ export async function POST(req: NextRequest) {
     originalFilename: file.name,
     driveFolderUrl,
   });
+
+  // Send confirmation to the submitter — non-fatal
+  if (uploaderEmail) {
+    try {
+      await sendConfirmationEmail({
+        uploaderName,
+        uploaderEmail,
+        sponsorName,
+        employeeCount: parseResult.employees.length,
+      });
+    } catch (err) {
+      console.error('Confirmation email failed (non-fatal):', err);
+    }
+  }
 
   const supabase = getSupabase();
   const { data: submission } = await supabase

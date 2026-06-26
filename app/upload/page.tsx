@@ -383,9 +383,18 @@ export default function UploadPage() {
           {/* ── Upload ── */}
           {(step === 'input' || step === 'validating') && (
             <div className="p-8 space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-800">Upload your employee census</h2>
-                <p className="text-slate-500 mt-1">We'll validate your data and flag any issues before submitting.</p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-800">Upload your employee census</h2>
+                  <p className="text-slate-500 mt-1">We'll validate your data and flag any issues before submitting.</p>
+                </div>
+                <button
+                  onClick={() => setStep('welcome')}
+                  disabled={step === 'validating'}
+                  className="shrink-0 text-sm text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors disabled:opacity-40 disabled:pointer-events-none mt-1"
+                >
+                  ← Back to instructions
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

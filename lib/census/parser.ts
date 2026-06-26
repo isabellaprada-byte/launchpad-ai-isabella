@@ -262,6 +262,38 @@ function buildRawRow(
 export interface ParseResult {
   employees: CensusEmployee[];
   rawCount: number;
+  missingRequiredHeaders?: string[];
+}
+
+const REQUIRED_FIELD_LABELS: Array<{ field: keyof CensusEmployee; label: string }> = [
+  { field: 'ssn',       label: 'Social Security Number (SSN)' },
+  { field: 'firstName', label: 'First Name' },
+  { field: 'lastName',  label: 'Last Name' },
+  { field: 'street1',   label: 'Address (Street 1)' },
+  { field: 'city',      label: 'City' },
+  { field: 'state',     label: 'State' },
+  { field: 'zip',       label: 'ZIP Code' },
+  { field: 'dob',       label: 'Date of Birth' },
+  { field: 'doh',       label: 'Date of Hire' },
+  { field: 'email',     label: 'Email' },
+  { field: 'phone',     label: 'Phone Number' },
+];
+
+function getMissingRequiredHeaders(
+  fieldMap: Record<number, keyof CensusEmployee>,
+  special: SpecialCols,
+): string[] {
+  const mapped = new Set(Object.values(fieldMap));
+  const hasNameCombined = special.combinedName !== undefined;
+  const hasAddressCombined = special.combinedAddress !== undefined;
+  const hasEmail = mapped.has('email') || special.workEmailCol !== undefined || special.personalEmailCol !== undefined;
+
+  return REQUIRED_FIELD_LABELS.filter(({ field }) => {
+    if (field === 'firstName' || field === 'lastName') return !hasNameCombined && !mapped.has(field);
+    if (field === 'street1' || field === 'city' || field === 'state' || field === 'zip') return !hasAddressCombined && !mapped.has(field);
+    if (field === 'email') return !hasEmail;
+    return !mapped.has(field);
+  }).map(({ label }) => label);
 }
 
 export async function parseCensusFile(buffer: ArrayBuffer, filename: string): Promise<ParseResult> {
@@ -289,6 +321,11 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
   const headerRow = (rows[0] as unknown[]).slice(1);
   const fieldMap = buildFieldMap(headerRow);
   const special = buildSpecialCols(headerRow);
+
+  const missingRequiredHeaders = getMissingRequiredHeaders(fieldMap, special);
+  if (missingRequiredHeaders.length > 0) {
+    return { employees: [], rawCount: 0, missingRequiredHeaders };
+  }
 
   const employees: CensusEmployee[] = [];
   for (let r = 1; r < rows.length; r++) {
@@ -322,6 +359,12 @@ async function parseCSV(buffer: ArrayBuffer): Promise<ParseResult> {
   const headers = parseRow(lines[0]);
   const fieldMap = buildFieldMap(headers);
   const special = buildSpecialCols(headers);
+
+  const missingRequiredHeaders = getMissingRequiredHeaders(fieldMap, special);
+  if (missingRequiredHeaders.length > 0) {
+    return { employees: [], rawCount: 0, missingRequiredHeaders };
+  }
+
   const employees: CensusEmployee[] = [];
 
   for (let r = 1; r < lines.length; r++) {
