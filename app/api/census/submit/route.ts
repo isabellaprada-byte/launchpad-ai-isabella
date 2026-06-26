@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
         uploaderEmail,
         sponsorName,
         employeeCount: parseResult.employees.length,
+        replaceExisting,
       });
     } catch (err) {
       console.error('Confirmation email failed (non-fatal):', err);

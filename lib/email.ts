@@ -25,12 +25,20 @@ export async function sendConfirmationEmail({
   uploaderEmail,
   sponsorName,
   employeeCount,
+  replaceExisting = false,
 }: {
   uploaderName: string;
   uploaderEmail: string;
   sponsorName: string;
   employeeCount: number;
+  replaceExisting?: boolean;
 }): Promise<void> {
+  const replaceBanner = replaceExisting
+    ? `<div style="margin:16px 0;padding:12px 16px;background:#fff8e1;border-left:4px solid #f59e0b;font-family:sans-serif;font-size:13px;color:#92400e">
+        <strong>Note:</strong> A previous submission was already on file for this email address. This new submission has replaced it and is the one that will be processed.
+       </div>`
+    : '';
+
   await resend.emails.send({
     from: 'Census Portal <onboarding@resend.dev>',
     to: uploaderEmail,
@@ -38,6 +46,7 @@ export async function sendConfirmationEmail({
     html: `
       <h2 style="margin:0 0 16px;font-family:sans-serif">Your census has been received!</h2>
       <p style="font-family:sans-serif;color:#333">Thank you, <strong>${esc(uploaderName)}</strong>. We've received the employee census for <strong>${esc(sponsorName)}</strong> and our implementation team has been notified.</p>
+      ${replaceBanner}
       <table style="margin:16px 0;border-collapse:collapse;font-family:sans-serif">
         <tr>
           <td style="padding:4px 12px 4px 0;color:#666;font-size:13px">Company</td>
