@@ -54,8 +54,10 @@ export async function createCensusTicket({
     }),
   });
 
+  const text = await res.text();
   if (!res.ok) {
-    const text = await res.text();
+    console.error(`DevRev API error — status: ${res.status} — body: ${text}`);
     throw new Error(`DevRev API ${res.status}: ${text}`);
   }
+  console.log(`DevRev ticket created OK — ${res.status}`);
 }
