@@ -18,11 +18,12 @@ export async function createCensusTicket({
   acknowledgedFields: string[];
   fixedCount: number;
 }): Promise<void> {
-  const token = process.env.DEVREV_TOKEN;
+  const token = process.env.DEVREV_TOKEN?.trim();
   if (!token) {
     console.warn('DEVREV_TOKEN not set — skipping DevRev ticket creation');
     return;
   }
+  console.log(`DEVREV_TOKEN length: ${token.length}, starts with: ${token.slice(0, 8)}`);
 
   const lines = [
     `**Company:** ${sponsorName}`,
