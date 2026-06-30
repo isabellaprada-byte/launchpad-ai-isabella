@@ -1,7 +1,7 @@
 const DEVREV_API = 'https://api.devrev.ai';
 const IMPLEMENTATIONS_GROUP = 'don:identity:dvrv-us-1:devo/1is7v8y722:group/4';
 const FORUSALL_PART = 'don:core:dvrv-us-1:devo/1is7v8y722:product/1';
-const ISABELLA_USER = 'don:identity:dvrv-us-1:devo/1is7v8y722:devu/855';
+const UNASSIGNED = 'don:identity:dvrv-us-1:devo/1is7v8y722:svcacc/2';
 
 export async function createCensusTicket({
   sponsorName,
@@ -45,7 +45,7 @@ export async function createCensusTicket({
       body: lines.join('\n'),
       group: IMPLEMENTATIONS_GROUP,
       applies_to_part: FORUSALL_PART,
-      owned_by: [ISABELLA_USER],
+      owned_by: [UNASSIGNED],
       severity: 'medium',
       subtype: 'request',
       tnt__ticket_type: 'Request',
