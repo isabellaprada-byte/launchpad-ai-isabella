@@ -5,6 +5,7 @@ import { validateEmployees } from '@/lib/census/validator';
 import { cleanFieldValue } from '@/lib/census/processor';
 import { buildAdminPanelXlsx, buildLtTrustXlsx } from '@/lib/census/excel-writer';
 import { sendCensusNotification, sendConfirmationEmail } from '@/lib/email';
+import { createCensusTicket } from '@/lib/devrev';
 import { uploadSubmissionToDrive } from '@/lib/google-drive';
 import { getSupabase } from '@/lib/supabase';
 
@@ -186,6 +187,20 @@ export async function POST(req: NextRequest) {
     })
     .select('id')
     .single();
+
+  // Create DevRev ticket — non-fatal
+  try {
+    await createCensusTicket({
+      sponsorName,
+      employeeCount: parseResult.employees.length,
+      uploaderName,
+      uploaderEmail,
+      acknowledgedFields,
+      fixedCount: rowFixes.length + Object.values(perEmployeeFixes).reduce((n, v) => n + Object.keys(v).length, 0),
+    });
+  } catch (err) {
+    console.error('DevRev ticket creation failed (non-fatal):', err);
+  }
 
   return NextResponse.json({
     success: true,
