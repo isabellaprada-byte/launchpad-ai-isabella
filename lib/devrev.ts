@@ -48,8 +48,6 @@ export async function createCensusTicket({
       applies_to_part: FORUSALL_PART,
       owned_by: [UNASSIGNED],
       severity: 'medium',
-      tnt__ticket_type: 'Request',
-      tnt__issue_type: 'IMP_Conversion',
       source_channel: 'Census Upload Portal',
     }),
   });
