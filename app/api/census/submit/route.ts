@@ -197,6 +197,12 @@ export async function POST(req: NextRequest) {
       uploaderEmail,
       acknowledgedFields,
       fixedCount: rowFixes.length + Object.values(perEmployeeFixes).reduce((n, v) => n + Object.keys(v).length, 0),
+      adminBuffer,
+      adminFilename,
+      ltBuffer,
+      ltFilename: ltResult.filename,
+      originalBuffer: Buffer.from(buffer),
+      originalFilename: file.name,
     });
   } catch (err) {
     console.error('DevRev ticket creation failed (non-fatal):', err);
