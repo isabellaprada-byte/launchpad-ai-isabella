@@ -617,9 +617,17 @@ export default function UploadPage() {
           {/* ── Preview & confirm ── */}
           {step === 'preview' && previewEmployees.length > 0 && (
             <div className="p-8">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Confirm your data</h2>
-                <p className="text-slate-500 mt-1">This is your final submission. Review the summary below before confirming.</p>
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-800">Confirm your data</h2>
+                  <p className="text-slate-500 mt-1">This is your final submission. Review the summary below before confirming.</p>
+                </div>
+                <button
+                  onClick={() => setStep('welcome')}
+                  disabled={step === 'submitting'}
+                  className="shrink-0 text-sm text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors disabled:opacity-40 disabled:pointer-events-none mt-1">
+                  ← Back to instructions
+                </button>
               </div>
 
               {/* Submission summary */}
