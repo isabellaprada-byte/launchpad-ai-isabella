@@ -17,18 +17,23 @@ async function uploadArtifact(
   if (!prepRes.ok) {
     throw new Error(`artifacts.prepare ${prepRes.status}: ${await prepRes.text()}`);
   }
-  const { artifact, upload_url, form_data } = await prepRes.json();
+  const prepJson = await prepRes.json();
+  console.log(`artifacts.prepare response keys: ${Object.keys(prepJson).join(', ')}`);
+
+  const artifactId: string = prepJson.artifact?.id ?? prepJson.artifact_id;
+  const uploadUrl: string = prepJson.upload_url ?? prepJson.url;
+  const formData: Array<{ key: string; value: string }> = prepJson.form_data ?? [];
 
   const fd = new FormData();
-  for (const { key, value } of (form_data ?? [])) fd.append(key, value);
+  for (const { key, value } of formData) fd.append(key, value);
   fd.append('file', new Blob([new Uint8Array(content)], { type: mimeType }), fileName);
 
-  const uploadRes = await fetch(upload_url, { method: 'POST', body: fd });
+  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: fd });
   if (!uploadRes.ok) {
     throw new Error(`artifact S3 upload ${uploadRes.status}: ${await uploadRes.text()}`);
   }
 
-  return artifact.id as string;
+  return artifactId;
 }
 
 export async function createCensusTicket({
