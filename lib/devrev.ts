@@ -20,7 +20,7 @@ async function uploadArtifact(
   const prepJson = await prepRes.json();
   console.log(`artifacts.prepare response keys: ${Object.keys(prepJson).join(', ')}`);
 
-  const artifactId: string = prepJson.artifact?.id ?? prepJson.artifact_id;
+  const artifactId: string = prepJson.artifact?.id ?? prepJson.artifact_id ?? prepJson.id;
   const uploadUrl: string = prepJson.upload_url ?? prepJson.url;
   const formData: Array<{ key: string; value: string }> = prepJson.form_data ?? [];
 
@@ -106,7 +106,8 @@ export async function createCensusTicket({
     severity: 'medium',
     source_channel: 'Census Upload Portal',
   };
-  if (artifactIds.length > 0) body.artifacts = artifactIds;
+  const validArtifactIds = artifactIds.filter(Boolean);
+  if (validArtifactIds.length > 0) body.artifacts = validArtifactIds;
 
   const res = await fetch(`${DEVREV_API}/works.create`, {
     method: 'POST',
