@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
       fixedCount: rowFixes.length + Object.values(perEmployeeFixes).reduce((n, v) => n + Object.keys(v).length, 0),
       adminBuffer,
       adminFilename,
-      ltBuffer,
+      ltBuffer: ltResult.buffer,
       ltFilename: ltResult.filename,
       originalBuffer: Buffer.from(buffer),
       originalFilename: file.name,
