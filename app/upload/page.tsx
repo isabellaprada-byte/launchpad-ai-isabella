@@ -624,8 +624,7 @@ export default function UploadPage() {
                 </div>
                 <button
                   onClick={() => setStep('welcome')}
-                  disabled={step === 'submitting'}
-                  className="shrink-0 text-sm text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors disabled:opacity-40 disabled:pointer-events-none mt-1">
+                  className="shrink-0 text-sm text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors mt-1">
                   ← Back to instructions
                 </button>
               </div>
