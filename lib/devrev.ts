@@ -12,7 +12,7 @@ async function uploadArtifact(
   const prepRes = await fetch(`${DEVREV_API}/artifacts.prepare`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_name: fileName, file_type: mimeType, file_size: content.length }),
+    body: JSON.stringify({ file_name: fileName, file_type: mimeType }),
   });
   if (!prepRes.ok) {
     throw new Error(`artifacts.prepare ${prepRes.status}: ${await prepRes.text()}`);
