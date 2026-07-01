@@ -21,7 +21,7 @@ async function uploadArtifact(
 
   const fd = new FormData();
   for (const { key, value } of (form_data ?? [])) fd.append(key, value);
-  fd.append('file', new Blob([content], { type: mimeType }), fileName);
+  fd.append('file', new Blob([new Uint8Array(content)], { type: mimeType }), fileName);
 
   const uploadRes = await fetch(upload_url, { method: 'POST', body: fd });
   if (!uploadRes.ok) {
