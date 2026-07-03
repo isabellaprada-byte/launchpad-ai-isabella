@@ -200,6 +200,83 @@ const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   return v;
 }
 
+// ── Value-based column detection ─────────────────────────────────────────────
+
+const US_STATES = new Set([
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+  'VA','WA','WV','WI','WY','DC',
+]);
+const EMAIL_VAL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ZIP_VAL_RE   = /^\d{5}(-\d{4})?$/;
+const SSN_VAL_RE   = /^\d{3}-\d{2}-\d{4}$|^\d{9}$/;
+const GENDER_SET   = new Set(['m', 'f', 'male', 'female']);
+
+function sampleColumn(dataRows: unknown[][], colIdx: number, max = 15): string[] {
+  const out: string[] = [];
+  for (const row of dataRows) {
+    if (out.length >= max) break;
+    const v = String(cellValue(row[colIdx]) ?? '').trim();
+    if (v) out.push(v);
+  }
+  return out;
+}
+
+function hitRate(samples: string[], test: (v: string) => boolean): number {
+  return samples.length ? samples.filter(test).length / samples.length : 0;
+}
+
+function extractYear(v: string): number | null {
+  const m = v.match(/\b(19|20)\d{2}\b/);
+  if (m) return parseInt(m[0]);
+  const short = v.match(/\/(\d{2})$/);
+  if (short) { const yy = parseInt(short[1]); return yy > 30 ? 1900 + yy : 2000 + yy; }
+  return null;
+}
+
+function detectFieldFromValues(samples: string[]): FieldKey | undefined {
+  if (samples.length < 2) return undefined;
+  if (hitRate(samples, v => SSN_VAL_RE.test(v)) >= 0.8) return 'ssn';
+  if (hitRate(samples, v => EMAIL_VAL_RE.test(v)) >= 0.8) return 'email';
+  if (hitRate(samples, v => ZIP_VAL_RE.test(v)) >= 0.8) return 'zip';
+  if (hitRate(samples, v => US_STATES.has(v.toUpperCase())) >= 0.8) return 'state';
+  if (hitRate(samples, v => {
+    const d = v.replace(/\D/g, '');
+    return d.length === 10 || (d.length === 11 && d[0] === '1');
+  }) >= 0.8) return 'phone';
+  if (hitRate(samples, v => GENDER_SET.has(v.toLowerCase())) >= 0.9) return 'gender';
+  // Date column — DOB vs DOH by median year
+  const years = samples.map(extractYear).filter((y): y is number => y !== null);
+  if (years.length / samples.length >= 0.7) {
+    years.sort((a, b) => a - b);
+    const median = years[Math.floor(years.length / 2)];
+    if (median >= 1940 && median <= 2003) return 'dob';
+    if (median > 2003) return 'doh';
+  }
+  return undefined;
+}
+
+function enhanceFieldMap(
+  fieldMap: Record<number, FieldKey>,
+  headers: unknown[],
+  dataRows: unknown[][],
+): Record<number, FieldKey> {
+  const enhanced = { ...fieldMap };
+  const mapped = new Set(Object.values(enhanced));
+  for (let i = 0; i < headers.length; i++) {
+    if (enhanced[i] !== undefined) continue;
+    const detected = detectFieldFromValues(sampleColumn(dataRows, i));
+    if (detected && !mapped.has(detected)) {
+      enhanced[i] = detected;
+      mapped.add(detected);
+    }
+  }
+  return enhanced;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function normalizeHeader(h: unknown): string {
   return String(cellValue(h) ?? '').trim().toLowerCase().replace(/[_\-]+/g, ' ');
 }
@@ -319,8 +396,11 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
   ws.eachRow(row => { rows.push(row.values as unknown[]); });
   // exceljs uses 1-based arrays; index 0 is undefined
   const headerRow = (rows[0] as unknown[]).slice(1);
-  const fieldMap = buildFieldMap(headerRow);
+  const dataRows = rows.slice(1).map(r => (r as unknown[]).slice(1));
+
+  let fieldMap = buildFieldMap(headerRow);
   const special = buildSpecialCols(headerRow);
+  fieldMap = enhanceFieldMap(fieldMap, headerRow, dataRows);
 
   const missingRequiredHeaders = getMissingRequiredHeaders(fieldMap, special);
   if (missingRequiredHeaders.length > 0) {
@@ -328,9 +408,8 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
   }
 
   const employees: CensusEmployee[] = [];
-  for (let r = 1; r < rows.length; r++) {
-    const cells = (rows[r] as unknown[]).slice(1);
-    if (cells.every(c => c == null || c === '')) continue; // skip blank rows
+  for (const cells of dataRows) {
+    if (cells.every(c => c == null || c === '')) continue;
     employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
   }
 
@@ -357,8 +436,13 @@ async function parseCSV(buffer: ArrayBuffer): Promise<ParseResult> {
   };
 
   const headers = parseRow(lines[0]);
-  const fieldMap = buildFieldMap(headers);
+  const dataRows = lines.slice(1)
+    .map(line => parseRow(line.trim()).map(c => c.trim()))
+    .filter(cells => cells.some(c => c));
+
+  let fieldMap = buildFieldMap(headers);
   const special = buildSpecialCols(headers);
+  fieldMap = enhanceFieldMap(fieldMap, headers, dataRows);
 
   const missingRequiredHeaders = getMissingRequiredHeaders(fieldMap, special);
   if (missingRequiredHeaders.length > 0) {
@@ -366,13 +450,8 @@ async function parseCSV(buffer: ArrayBuffer): Promise<ParseResult> {
   }
 
   const employees: CensusEmployee[] = [];
-
-  for (let r = 1; r < lines.length; r++) {
-    const line = lines[r].trim();
-    if (!line) continue;
-    const cells = parseRow(line);
-    if (cells.every(c => !c.trim())) continue;
-    employees.push(processEmployee(buildRawRow(cells.map(c => c.trim()), fieldMap, special)));
+  for (const cells of dataRows) {
+    employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
   }
 
   return { employees, rawCount: employees.length };
