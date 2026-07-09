@@ -38,7 +38,7 @@ export function ValidationPanel({
     termDate:   'Format: MM/DD/YYYY — e.g. 06/30/2023',
     rehireDate: 'Format: MM/DD/YYYY — e.g. 01/15/2024',
     ssn:        'Format: XXX-XX-XXXX — e.g. 123-45-6789',
-    phone:      'Must start with + and country code — e.g. +1 5551234567 (US) or +52 5551234567 (International)',
+    phone:      'Minimum 10 digits — e.g. (555) 555-1234. Country code optional: +1 (555) 555-1234. Dashes and spaces OK.',
     email:      'Format: name@company.com',
     zip:        'Format: 5 digits — e.g. 12345',
   };
@@ -51,8 +51,10 @@ export function ValidationPanel({
     if (field === 'email' && !EMAIL_RE.test(v)) return 'Please enter a valid email — e.g. name@company.com';
     if (field === 'zip' && !ZIP_RE.test(v)) return 'Please enter a 5-digit ZIP — e.g. 12345';
     if (field === 'phone') {
-      if (!v.startsWith('+')) return 'Must include country code — e.g. +1 5551234567 (US) or +52 5551234567 (International)';
-      if (v.replace(/\D/g, '').length < 10) return 'Number too short — include full number with country code';
+      const digits = v.replace(/[\s\-\.\(\)\+]/g, '').replace(/\D/g, '');
+      if (!digits) return 'Enter a phone number — e.g. (555) 555-1234 or +1 (555) 555-1234';
+      if (digits.length < 10) return `Phone too short (${digits.length} digits) — minimum 10 digits, e.g. (555) 555-1234`;
+      if (digits.length > 15) return `Phone too long (${digits.length} digits) — max 15 digits`;
     }
     return '';
   }
@@ -177,7 +179,7 @@ export function ValidationPanel({
                         className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 mt-2"
                         disabled={
                           !Object.values(bulkEdits[flag.id] ?? {}).some(v => v.trim()) ||
-                          Object.entries(bulkEdits[flag.id] ?? {}).some(([idx, v]) => !!validateDateField(flag.field, v))
+                          Object.entries(bulkEdits[flag.id] ?? {}).some(([, v]) => !!validateDateField(flag.field, v))
                         }
                         onClick={() => {
                           const raw = bulkEdits[flag.id] ?? {};
@@ -317,12 +319,16 @@ export function ValidationPanel({
                           Fix it
                         </Button>
                       </div>
-                      {FIELD_HINTS[flag.field] && !inputErrors[flag.id] && (
+                      {inputErrors[flag.id] ? (
+                        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                          <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-sm text-red-700 font-medium">{inputErrors[flag.id]}</p>
+                        </div>
+                      ) : FIELD_HINTS[flag.field] ? (
                         <p className="text-xs text-slate-400">{FIELD_HINTS[flag.field]}</p>
-                      )}
-                      {inputErrors[flag.id] && (
-                        <p className="text-xs text-red-500">{inputErrors[flag.id]}</p>
-                      )}
+                      ) : null}
                     </div>
                     {flag.severity !== 'error' && (
                       <button

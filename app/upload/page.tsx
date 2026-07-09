@@ -48,6 +48,7 @@ export default function UploadPage() {
   const [previewEmployees, setPreviewEmployees] = useState<CensusEmployee[]>([]);
   const [downloadInfo, setDownloadInfo] = useState<{ filename: string; base64: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [contactCopied, setContactCopied] = useState(false);
 
   function hasFullName(name: string): boolean {
     return name.trim().split(/\s+/).length >= 2;
@@ -239,6 +240,20 @@ export default function UploadPage() {
     URL.revokeObjectURL(url);
   }
 
+  function handleContactUs() {
+    const email = 'implementations@forusall.com';
+    const subject = 'Census%20Upload%20Help';
+    const body = 'Hi%2C%20I%20need%20help%20with%20my%20census%20upload.';
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    // Copy email as fallback for users without a mail client configured
+    setTimeout(() => {
+      navigator.clipboard.writeText(email).then(() => {
+        setContactCopied(true);
+        setTimeout(() => setContactCopied(false), 3000);
+      }).catch(() => {});
+    }, 300);
+  }
+
   function reset() {
     setStep('welcome'); setSponsorName(''); setUploaderName(''); setUploaderEmail(''); setFile(null);
     setValidation(null); setResolvedFlags({}); setPerEmployeeFixes({}); setUploaderEmailError('');
@@ -313,22 +328,27 @@ export default function UploadPage() {
 
               {/* Required fields */}
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
-                <p className="font-semibold text-slate-800 text-base">We need the following information for all your employees:</p>
+                <div>
+                  <p className="font-semibold text-slate-800 text-base">We need the following information for all your employees:</p>
+                  <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                    Each field below is required to properly set up your 401(k) plan. This data allows us to enroll every participant correctly, determine their eligibility and vesting, and send them required plan notices and account communications — all so your plan stays in compliance.
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { icon: '🔐', label: 'Social Security Number (SSN)', note: 'Format: XXX-XX-XXXX' },
-                    { icon: '👤', label: 'First Name & Last Name', note: '' },
-                    { icon: '🏠', label: 'Address, City, State, and ZIP', note: '' },
-                    { icon: '📅', label: 'Date of Birth', note: 'Format: MM/DD/YYYY' },
-                    { icon: '📅', label: 'Date of Hire', note: 'Format: MM/DD/YYYY' },
-                    { icon: '✉️', label: 'Email', note: 'Work email preferred — e.g. name@company.com' },
-                    { icon: '📞', label: 'Phone Number', note: 'Include country code — e.g. +1 5551234567' },
+                    { icon: '👤', label: 'First Name & Last Name',        note: '' },
+                    { icon: '🏠', label: 'Address, City, State & ZIP',    note: '' },
+                    { icon: '📅', label: 'Date of Birth',                 note: 'Format: MM/DD/YYYY' },
+                    { icon: '📅', label: 'Date of Hire',                  note: 'Format: MM/DD/YYYY' },
+                    { icon: '✉️', label: 'Email',                         note: 'Work email preferred' },
+                    { icon: '📞', label: 'Phone Number',                  note: 'e.g. (555) 555-1234' },
                   ].map(({ icon, label, note }) => (
                     <div key={label} className="flex items-start gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3">
                       <span className="text-lg shrink-0">{icon}</span>
                       <div>
                         <p className="text-sm font-medium text-slate-800">{label}</p>
-                        {note && <p className="text-xs text-slate-400 mt-0.5 font-mono">{note}</p>}
+                        {note && <p className="text-xs text-slate-400 mt-0.5">{note}</p>}
                       </div>
                     </div>
                   ))}
@@ -388,13 +408,21 @@ export default function UploadPage() {
                   <h2 className="text-xl font-semibold text-slate-800">Upload your employee census</h2>
                   <p className="text-slate-500 mt-1">We'll validate your data and flag any issues before submitting.</p>
                 </div>
-                <button
-                  onClick={() => setStep('welcome')}
-                  disabled={step === 'validating'}
-                  className="shrink-0 text-sm text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors disabled:opacity-40 disabled:pointer-events-none mt-1"
-                >
-                  ← Back to instructions
-                </button>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => setStep('welcome')}
+                    disabled={step === 'validating'}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    ← Back to instructions
+                  </button>
+                  <button
+                    onClick={handleContactUs}
+                    className="text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-400 bg-white hover:bg-slate-50 flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {contactCopied ? '✓ Email copied!' : 'Contact us'}
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -622,11 +650,20 @@ export default function UploadPage() {
                   <h2 className="text-xl font-semibold text-slate-800">Confirm your data</h2>
                   <p className="text-slate-500 mt-1">This is your final submission. Review the summary below before confirming.</p>
                 </div>
-                <button
-                  onClick={() => setStep('welcome')}
-                  className="shrink-0 text-sm text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors mt-1">
-                  ← Back to instructions
-                </button>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => setStep('welcome')}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    ← Back to instructions
+                  </button>
+                  <button
+                    onClick={handleContactUs}
+                    className="text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-400 bg-white hover:bg-slate-50 flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {contactCopied ? '✓ Email copied!' : 'Contact us'}
+                  </button>
+                </div>
               </div>
 
               {/* Submission summary */}

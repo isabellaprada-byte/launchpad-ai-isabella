@@ -47,6 +47,16 @@ function isValidEmail(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+function isValidZIP(v: string): boolean {
+  if (!v) return true; // blank handled by required check
+  return /^\d{5}(-\d{4})?$/.test(v);
+}
+
+function isAlphaName(v: string): boolean {
+  if (!v) return true; // blank handled by required check
+  return !/\d/.test(v); // no digits allowed in a name
+}
+
 export function validateEmployees(employees: CensusEmployee[]): ValidationFlag[] {
   const flags: ValidationFlag[] = [];
   let flagId = 0;
@@ -124,6 +134,39 @@ export function validateEmployees(employees: CensusEmployee[]): ValidationFlag[]
       }
     }
 
+    // First Name / Last Name must not contain digits
+    for (const [key, label] of [['firstName', 'First Name'], ['lastName', 'Last Name']] as const) {
+      const val = emp[key];
+      if (!isBlank(val) && !isAlphaName(val)) {
+        flags.push({
+          id: `f${flagId++}`,
+          scope: 'row',
+          rowIndex: i,
+          employeeName: displayName,
+          field: key,
+          fieldLabel: label,
+          severity: 'error',
+          message: `"${label}" contains numbers — please enter a name only`,
+          currentValue: val,
+        });
+      }
+    }
+
+    // ZIP must be 5 digits (or ZIP+4)
+    if (!isBlank(emp.zip) && !isValidZIP(emp.zip)) {
+      flags.push({
+        id: `f${flagId++}`,
+        scope: 'row',
+        rowIndex: i,
+        employeeName: displayName,
+        field: 'zip',
+        fieldLabel: 'ZIP Code',
+        severity: 'error',
+        message: `ZIP Code "${emp.zip}" is not valid — must be 5 digits`,
+        currentValue: emp.zip,
+      });
+    }
+
     // Email format check
     if (!isBlank(emp.email) && !isValidEmail(emp.email)) {
       flags.push({
@@ -139,19 +182,30 @@ export function validateEmployees(employees: CensusEmployee[]): ValidationFlag[]
       });
     }
 
-    // Phone format check — after cleaning should have at least 7 digits
-    if (!isBlank(emp.phone) && !/^\d{7,}$/.test(emp.phone)) {
-      flags.push({
-        id: `f${flagId++}`,
-        scope: 'row',
-        rowIndex: i,
-        employeeName: displayName,
-        field: 'phone',
-        fieldLabel: 'Phone',
-        severity: 'error',
-        message: `"${emp.phone}" is not a valid phone number`,
-        currentValue: emp.phone,
-      });
+    // Phone format check — after cleaning, must be 7–15 digits
+    if (!isBlank(emp.phone)) {
+      const phoneDigits = emp.phone.replace(/\D/g, '');
+      let phoneMsg = '';
+      if (!phoneDigits) {
+        phoneMsg = `Phone number "${emp.phone}" contains no digits — enter numbers only (dashes and country codes like +57 are OK)`;
+      } else if (phoneDigits.length < 7) {
+        phoneMsg = `Phone number is too short (${phoneDigits.length} digits) — at least 7 digits required`;
+      } else if (phoneDigits.length > 15) {
+        phoneMsg = `Phone number is too long (${phoneDigits.length} digits) — max 15 digits`;
+      }
+      if (phoneMsg) {
+        flags.push({
+          id: `f${flagId++}`,
+          scope: 'row',
+          rowIndex: i,
+          employeeName: displayName,
+          field: 'phone',
+          fieldLabel: 'Phone',
+          severity: 'error',
+          message: phoneMsg,
+          currentValue: emp.phone,
+        });
+      }
     }
   }
 

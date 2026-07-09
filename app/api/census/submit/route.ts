@@ -6,7 +6,7 @@ import { cleanFieldValue } from '@/lib/census/processor';
 import { buildAdminPanelXlsx, buildLtTrustXlsx } from '@/lib/census/excel-writer';
 import { sendCensusNotification, sendConfirmationEmail } from '@/lib/email';
 import { createCensusTicket } from '@/lib/devrev';
-import { uploadSubmissionToDrive } from '@/lib/google-drive';
+import { uploadCensusToShareFile } from '@/lib/sharefile';
 import { getSupabase } from '@/lib/supabase';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
@@ -122,12 +122,11 @@ export async function POST(req: NextRequest) {
     buildLtTrustXlsx(parseResult.employees, safeName, dotDate),
   ]);
 
-  // Upload 3 files to a private Drive subfolder (only accessible to folder owner)
-  // Non-fatal: if Drive credentials are missing, submission still completes
+  // Upload 3 files to ShareFile — non-fatal if credentials are missing
   let driveFolderUrl: string | undefined;
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY) {
+  if (process.env.SHAREFILE_CLIENT_ID && process.env.SHAREFILE_CLIENT_SECRET) {
     try {
-      const driveResult = await uploadSubmissionToDrive({
+      const sfResult = await uploadCensusToShareFile({
         sponsorName: safeName,
         dateStr: isoDate,
         originalBuffer: Buffer.from(buffer),
@@ -137,9 +136,9 @@ export async function POST(req: NextRequest) {
         ltBuffer: ltResult.buffer,
         ltFilename: ltResult.filename,
       });
-      driveFolderUrl = driveResult.folderUrl;
+      driveFolderUrl = sfResult.folderUrl;
     } catch (err) {
-      console.error('Drive upload failed (non-fatal):', err);
+      console.error('ShareFile upload failed (non-fatal):', err);
     }
   }
 

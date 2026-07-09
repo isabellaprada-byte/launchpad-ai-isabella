@@ -29,16 +29,11 @@ export function cleanSSN(v: unknown): string {
 export function cleanPhone(v: unknown): string {
   if (!v) return '';
   const s = String(v).trim();
-  if (s.startsWith('+1')) {
-    const digits = s.slice(2).replace(/\D/g, '');
-    return digits.length === 10 ? digits : digits;
-  }
-  if (s.startsWith('+')) {
-    // Non-US country code — keep full number, just remove the +
-    return s.slice(1).replace(/\D/g, '');
-  }
-  let digits = s.replace(/\D/g, '');
-  if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+  // Strip formatting: +, dashes, spaces, dots, parentheses
+  const digits = s.replace(/[\s\-\.\(\)\+]/g, '').replace(/\D/g, '');
+  if (!digits) return s; // no digits at all — preserve original so validator can flag it
+  // If more than 10 digits, assume the leading digits are a country code → take the last 10
+  if (digits.length > 10) return digits.slice(-10);
   return digits;
 }
 
@@ -71,7 +66,10 @@ export function cleanZIP(v: unknown): string {
   const s = String(v).replace(/\.0+$/, '').trim();
   if (/^\d{5}-\d{4}$/.test(s)) return s; // ZIP+4 preserved
   const digits = s.replace(/\D/g, '');
-  return digits.length <= 5 ? digits.padStart(5, '0') : digits.slice(0, 5);
+  // If value has no digits (e.g. "NY" put in wrong column), preserve as-is so validator flags it
+  if (!digits) return s;
+  if (digits.length > 5) return digits.slice(0, 5);
+  return digits.padStart(5, '0'); // pad numeric-only values for leading zeros (e.g. "1234" → "01234")
 }
 
 export function cleanState(v: unknown): string {

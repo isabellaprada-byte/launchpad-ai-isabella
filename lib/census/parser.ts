@@ -123,6 +123,8 @@ interface SpecialCols {
   combinedAddress?: number;
   workEmailCol?: number;
   personalEmailCol?: number;
+  lastNameFromDupe?: number;   // first of two "Name" columns → Last Name
+  firstNameFromDupe?: number;  // second of two "Name" columns → First Name
 }
 
 function normSpecial(h: unknown): string {
@@ -131,13 +133,20 @@ function normSpecial(h: unknown): string {
 
 function buildSpecialCols(headers: unknown[]): SpecialCols {
   const special: SpecialCols = {};
+  const nameIndices: number[] = [];
   headers.forEach((h, i) => {
     const norm = normSpecial(h);
-    if (/^(name|full name|employee name|participant name)$/.test(norm)) special.combinedName = i;
+    if (/^(name|full name|employee name|participant name)$/.test(norm)) nameIndices.push(i);
     if (/^address$/.test(norm)) special.combinedAddress = i;
     if (norm.includes('work') && norm.includes('email')) special.workEmailCol = i;
     if (norm.includes('personal') && norm.includes('email')) special.personalEmailCol = i;
   });
+  if (nameIndices.length === 1) special.combinedName = nameIndices[0];
+  else if (nameIndices.length >= 2) {
+    // Two "Name" columns: by convention first = Last Name, second = First Name
+    special.lastNameFromDupe = nameIndices[0];
+    special.firstNameFromDupe = nameIndices[1];
+  }
   return special;
 }
 
@@ -185,7 +194,7 @@ function cellValue(v: unknown): unknown {
     // avoid the date shifting one day back in US timezones (UTC-5/6)
     if (typeof (v as Date).toISOString === 'function') {
       const d = v as Date;
-const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
       const dd = String(d.getUTCDate()).padStart(2, '0');
       const yyyy = d.getUTCFullYear();
       return `${mm}/${dd}/${yyyy}`;
@@ -197,6 +206,8 @@ const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
       return (o.richText as Array<{ text?: string }>).map(r => r.text ?? '').join('');
     }
   }
+  // Strip Excel text-prefix apostrophe (stored internally when user types '123 to force text)
+  if (typeof v === 'string' && v.startsWith("'") && v.length > 1) return v.slice(1);
   return v;
 }
 
@@ -281,6 +292,23 @@ function normalizeHeader(h: unknown): string {
   return String(cellValue(h) ?? '').trim().toLowerCase().replace(/[_\-]+/g, ' ');
 }
 
+function checkDuplicateHeaders(headers: unknown[]): void {
+  const seen = new Map<string, number>();
+  for (const h of headers) {
+    const raw = String(cellValue(h) ?? '').trim();
+    if (!raw) continue;
+    const norm = raw.toLowerCase();
+    seen.set(norm, (seen.get(norm) ?? 0) + 1);
+  }
+  const dupes = [...seen.entries()].filter(([, count]) => count > 1).map(([name]) => `"${name}"`);
+  if (dupes.length > 0) {
+    throw new Error(
+      `Your file has duplicate column headers: ${dupes.join(', ')}. ` +
+      `Please rename or remove the duplicate columns before uploading.`,
+    );
+  }
+}
+
 function buildFieldMap(headers: unknown[]): Record<number, keyof CensusEmployee> {
   const map: Record<number, keyof CensusEmployee> = {};
   headers.forEach((h, i) => {
@@ -312,16 +340,24 @@ function buildRawRow(
     }
   }
 
-  // Combined ADDRESS → street1 + city + state + zip (always override direct mapping)
+  // Combined ADDRESS → street1 + city + state + zip (fill-if-not-set — never clobber separately-mapped columns)
   if (special.combinedAddress !== undefined) {
     const addr = String(cellValue(cells[special.combinedAddress]) ?? '').trim();
     if (addr) {
       const parts = splitCombinedAddress(addr);
-      raw.street1 = parts.street1;
-      raw.city = parts.city;
-      raw.state = parts.state;
-      raw.zip = parts.zip;
+      if (!raw.street1) raw.street1 = parts.street1;
+      if (!raw.city)    raw.city    = parts.city;
+      if (!raw.state)   raw.state   = parts.state;
+      if (!raw.zip)     raw.zip     = parts.zip;
     }
+  }
+
+  // Duplicate "Name" columns → first = Last Name, second = First Name
+  if (special.lastNameFromDupe !== undefined && !raw.lastName) {
+    raw.lastName = String(cellValue(cells[special.lastNameFromDupe]) ?? '').trim();
+  }
+  if (special.firstNameFromDupe !== undefined && !raw.firstName) {
+    raw.firstName = String(cellValue(cells[special.firstNameFromDupe]) ?? '').trim();
   }
 
   // Email priority: Work email first, fall back to Personal email
@@ -362,11 +398,12 @@ function getMissingRequiredHeaders(
 ): string[] {
   const mapped = new Set(Object.values(fieldMap));
   const hasNameCombined = special.combinedName !== undefined;
+  const hasNameDupe = special.lastNameFromDupe !== undefined;
   const hasAddressCombined = special.combinedAddress !== undefined;
   const hasEmail = mapped.has('email') || special.workEmailCol !== undefined || special.personalEmailCol !== undefined;
 
   return REQUIRED_FIELD_LABELS.filter(({ field }) => {
-    if (field === 'firstName' || field === 'lastName') return !hasNameCombined && !mapped.has(field);
+    if (field === 'firstName' || field === 'lastName') return !hasNameCombined && !hasNameDupe && !mapped.has(field);
     if (field === 'street1' || field === 'city' || field === 'state' || field === 'zip') return !hasAddressCombined && !mapped.has(field);
     if (field === 'email') return !hasEmail;
     return !mapped.has(field);
@@ -387,17 +424,32 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await wb.xlsx.load(Buffer.from(new Uint8Array(buffer)) as any);
 
-  // Use first non-empty sheet
+  // Pick the sheet with the most actual rows (handles files where data is on Sheet2, etc.)
   let ws: XLSX.Worksheet | undefined;
-  wb.eachSheet(sheet => { if (!ws && sheet.rowCount > 0) ws = sheet; });
+  let maxRows = 0;
+  wb.eachSheet(sheet => {
+    if (sheet.actualRowCount > maxRows) { maxRows = sheet.actualRowCount; ws = sheet; }
+  });
   if (!ws) return { employees: [], rawCount: 0 };
 
   const rows: unknown[][] = [];
   ws.eachRow(row => { rows.push(row.values as unknown[]); });
-  // exceljs uses 1-based arrays; index 0 is undefined
-  const headerRow = (rows[0] as unknown[]).slice(1);
-  const dataRows = rows.slice(1).map(r => (r as unknown[]).slice(1));
 
+  // Auto-detect header row — scan first 6 rows, pick the one with the most field matches.
+  // This handles files with a title row, logo row, or colored banner before the real headers.
+  let headerRowIdx = 0;
+  let bestScore = -1;
+  for (let i = 0; i < Math.min(6, rows.length); i++) {
+    const candidate = (rows[i] as unknown[]).slice(1);
+    const score = candidate.filter(h => matchHeader(h) !== undefined).length;
+    if (score > bestScore) { bestScore = score; headerRowIdx = i; }
+  }
+
+  // exceljs uses 1-based arrays; index 0 is undefined
+  const headerRow = (rows[headerRowIdx] as unknown[]).slice(1);
+  const dataRows = rows.slice(headerRowIdx + 1).map(r => (r as unknown[]).slice(1));
+
+  checkDuplicateHeaders(headerRow);
   let fieldMap = buildFieldMap(headerRow);
   const special = buildSpecialCols(headerRow);
   fieldMap = enhanceFieldMap(fieldMap, headerRow, dataRows);
@@ -410,7 +462,18 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
   const employees: CensusEmployee[] = [];
   for (const cells of dataRows) {
     if (cells.every(c => c == null || c === '')) continue;
-    employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
+    // Skip sparse rows — section headers, totals rows, or colored separators typically
+    // have fewer than 2 recognizable fields. Real employee rows always have SSN + name at minimum.
+    const nonEmptyMapped = Object.keys(fieldMap).filter(i => {
+      const v = cellValue(cells[parseInt(i)]);
+      return v != null && v !== '';
+    }).length;
+    if (nonEmptyMapped < 2) continue;
+    try {
+      employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
+    } catch {
+      // skip malformed rows without crashing the whole file
+    }
   }
 
   return { employees, rawCount: employees.length };
@@ -440,6 +503,7 @@ async function parseCSV(buffer: ArrayBuffer): Promise<ParseResult> {
     .map(line => parseRow(line.trim()).map(c => c.trim()))
     .filter(cells => cells.some(c => c));
 
+  checkDuplicateHeaders(headers);
   let fieldMap = buildFieldMap(headers);
   const special = buildSpecialCols(headers);
   fieldMap = enhanceFieldMap(fieldMap, headers, dataRows);
@@ -451,7 +515,11 @@ async function parseCSV(buffer: ArrayBuffer): Promise<ParseResult> {
 
   const employees: CensusEmployee[] = [];
   for (const cells of dataRows) {
-    employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
+    try {
+      employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
+    } catch {
+      // skip malformed rows without crashing the whole file
+    }
   }
 
   return { employees, rawCount: employees.length };
