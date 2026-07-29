@@ -26,8 +26,8 @@ async function getAccessToken(): Promise<string> {
   });
 
   if (!res.ok) throw new Error(`ShareFile auth failed: ${res.status} ${await res.text()}`);
-  const json = await res.json();
-  return json.access_token as string;
+  const json = await res.json() as { access_token: string };
+  return json.access_token;
 }
 
 async function uploadFile(

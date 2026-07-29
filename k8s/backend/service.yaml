@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: census-backend
+  namespace: census-portal
+spec:
+  selector:
+    app: census-backend
+  ports:
+    - port: 4000
+      targetPort: 4000
+  type: ClusterIP

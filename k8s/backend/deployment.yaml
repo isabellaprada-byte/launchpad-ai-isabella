@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: census-backend
+  namespace: census-portal
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: census-backend
+  template:
+    metadata:
+      labels:
+        app: census-backend
+    spec:
+      serviceAccountName: census-backend-sa
+      containers:
+        - name: backend
+          image: YOUR_ECR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/census-portal/backend:latest
+          ports:
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
+            - name: FRONTEND_URL
+              value: "https://census.forusall.com"
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: S3_BUCKET_NAME
+              value: "census-portal-prod"
+            - name: NEXT_PUBLIC_SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: supabase-url
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: supabase-service-role-key
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: resend-api-key
+            - name: NOTIFICATION_EMAIL
+              value: "implementations@forusall.com"
+            - name: DEVREV_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: devrev-token
+            - name: SHAREFILE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: sharefile-client-id
+                  optional: true
+            - name: SHAREFILE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: sharefile-client-secret
+                  optional: true
+            - name: SHAREFILE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: sharefile-username
+                  optional: true
+            - name: SHAREFILE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: census-secrets
+                  key: sharefile-password
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
