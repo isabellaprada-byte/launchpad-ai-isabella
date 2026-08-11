@@ -176,7 +176,7 @@ export async function censusRoutes(app: FastifyInstance) {
 
     let parseResult;
     try {
-      parseResult = await parseCensusFile(fileBuffer.buffer as ArrayBuffer, filename);
+      parseResult = await parseCensusFile(fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength) as ArrayBuffer, filename);
     } catch (err) {
       return reply.status(422).send({ error: `Parse error: ${(err as Error).message}` });
     }
