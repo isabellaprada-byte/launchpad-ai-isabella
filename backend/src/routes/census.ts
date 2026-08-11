@@ -41,7 +41,7 @@ export async function censusRoutes(app: FastifyInstance) {
 
     let parseResult;
     try {
-      parseResult = await parseCensusFile(buffer.buffer as ArrayBuffer, data.filename);
+      parseResult = await parseCensusFile(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer, data.filename);
     } catch (err) {
       return reply.status(422).send({ error: `Parse error: ${(err as Error).message}` });
     }
@@ -88,10 +88,13 @@ export async function censusRoutes(app: FastifyInstance) {
     }
 
     if (!fileBuffer) return reply.status(400).send({ error: 'No file uploaded' });
+    if (fileBuffer.byteLength > MAX_FILE_SIZE) {
+      return reply.status(413).send({ error: 'File too large. Maximum allowed size is 25 MB.' });
+    }
 
     let parseResult;
     try {
-      parseResult = await parseCensusFile(fileBuffer.buffer as ArrayBuffer, filename);
+      parseResult = await parseCensusFile(fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength) as ArrayBuffer, filename);
     } catch (err) {
       return reply.status(422).send({ error: `Parse error: ${(err as Error).message}` });
     }
@@ -319,7 +322,6 @@ export async function censusRoutes(app: FastifyInstance) {
       submissionId: submission?.id,
       employeeCount: parseResult.employees.length,
       adminFilename,
-      adminBase64: adminBuffer.toString('base64'),
     });
   });
 

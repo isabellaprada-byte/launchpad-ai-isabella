@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
 import { Button } from '@/components/ui/button';
 import { UploadZone } from '@/components/census/UploadZone';
 import { ValidationPanel } from '@/components/census/ValidationPanel';
@@ -71,7 +73,7 @@ export default function UploadPage() {
       try {
         const checkCtrl = new AbortController();
         const checkTimeout = setTimeout(() => checkCtrl.abort(), 8000);
-        const checkRes = await fetch(`/api/census/check-email?email=${encodeURIComponent(uploaderEmail.trim())}`, { signal: checkCtrl.signal });
+        const checkRes = await fetch(`${API_BASE}/api/census/check-email?email=${encodeURIComponent(uploaderEmail.trim())}`, { signal: checkCtrl.signal });
         clearTimeout(checkTimeout);
         const checkJson = await checkRes.json();
         if (checkJson.hasExisting) {
@@ -92,7 +94,7 @@ export default function UploadPage() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 28000);
-      const res = await fetch('/api/census/validate', { method: 'POST', body: fd, signal: controller.signal });
+      const res = await fetch(`${API_BASE}/api/census/validate`, { method: 'POST', body: fd, signal: controller.signal });
       clearTimeout(timeout);
       const json = await res.json();
       if (!res.ok) { setErrorMsg(json.error ?? 'Validation failed'); setStep('error'); return; }
@@ -163,7 +165,7 @@ export default function UploadPage() {
     fd.append('acknowledgedFields', JSON.stringify(acknowledgedFieldsList()));
     fd.append('perEmployeeFixes', JSON.stringify(perEmployeeFixes));
     fd.append('rowFixes', JSON.stringify(rowFixesList()));
-    const res = await fetch('/api/census/preview', { method: 'POST', body: fd });
+    const res = await fetch(`${API_BASE}/api/census/preview`, { method: 'POST', body: fd });
     const json = await res.json();
     if (!res.ok) {
       if (res.status === 422 && Array.isArray(json.flags) && json.flags.length > 0) {
@@ -221,7 +223,7 @@ export default function UploadPage() {
     fd.append('perEmployeeFixes', JSON.stringify(perEmployeeFixes));
     fd.append('rowFixes', JSON.stringify(rowFixesList()));
     fd.append('replaceExisting', String(replaceExisting));
-    const res = await fetch('/api/census/submit', { method: 'POST', body: fd });
+    const res = await fetch(`${API_BASE}/api/census/submit`, { method: 'POST', body: fd });
     const json = await res.json();
     if (!res.ok) { setErrorMsg(json.error ?? 'Submission failed'); setStep('error'); return; }
     if (json.adminBase64) setDownloadInfo({ filename: json.adminFilename, base64: json.adminBase64 });
@@ -267,16 +269,28 @@ export default function UploadPage() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-8 py-6">
-        <div className="max-w-6xl mx-auto flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Census Upload Portal</h1>
+              <p className="text-sm font-semibold text-violet-600 mt-0.5">ForUsAll <span className="font-normal text-slate-400">— Implementation Team</span></p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleContactUs}
+            className="flex items-center gap-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-xl px-4 py-2 text-sm font-medium transition-colors shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Census Upload Portal</h1>
-            <p className="text-sm font-semibold text-violet-600 mt-0.5">ForUsAll <span className="font-normal text-slate-400">— Implementation Team</span></p>
-          </div>
+            {contactCopied ? '✓ Email copied!' : 'Contact Us'}
+          </button>
         </div>
       </div>
 
@@ -329,15 +343,26 @@ export default function UploadPage() {
               {/* Required fields */}
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
                 <div>
-                  <p className="font-semibold text-slate-800 text-base">We need the following information for all your employees:</p>
+                  <p className="font-semibold text-slate-800 text-base">Required information for every participant</p>
                   <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
-                    Each field below is required to properly set up your 401(k) plan. This data allows us to enroll every participant correctly, determine their eligibility and vesting, and send them required plan notices and account communications — all so your plan stays in compliance.
+                    The fields below are <span className="font-medium text-slate-700">requested for every participant</span> in your census. This information is what we need to correctly enroll every participant, verify their eligibility and vesting schedule, and deliver required plan notices — keeping your 401(k) plan fully compliant from day one.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* First Name + Last Name side by side */}
+                  <div className="sm:col-span-2 flex items-stretch bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-3 flex-1">
+                      <span className="text-lg shrink-0">👤</span>
+                      <p className="text-sm font-medium text-slate-800">First Name</p>
+                    </div>
+                    <div className="w-px bg-slate-200" />
+                    <div className="flex items-center gap-3 px-4 py-3 flex-1">
+                      <span className="text-lg shrink-0">👤</span>
+                      <p className="text-sm font-medium text-slate-800">Last Name</p>
+                    </div>
+                  </div>
                   {[
                     { icon: '🔐', label: 'Social Security Number (SSN)', note: 'Format: XXX-XX-XXXX' },
-                    { icon: '👤', label: 'First Name & Last Name',        note: '' },
                     { icon: '🏠', label: 'Address, City, State & ZIP',    note: '' },
                     { icon: '📅', label: 'Date of Birth',                 note: 'Format: MM/DD/YYYY' },
                     { icon: '📅', label: 'Date of Hire',                  note: 'Format: MM/DD/YYYY' },
@@ -374,7 +399,7 @@ export default function UploadPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-700">Additional columns are always helpful.</span> If your file includes gender, middle initial, division, termination date, rehire date, or contribution amounts — include them. The more complete the file, the faster we can process your census.
+                  <span className="font-medium text-slate-700">Our template includes additional optional columns.</span> Fields like gender, middle initial, division, termination date, rehire date, and contribution amounts are not required — but if you have them, please include them. The more complete your file, the richer the picture we have of your workforce and the smoother your onboarding will be.
                 </p>
               </div>
 

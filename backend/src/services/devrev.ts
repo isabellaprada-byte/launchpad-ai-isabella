@@ -68,7 +68,6 @@ export async function createCensusTicket({
     console.warn('DEVREV_TOKEN not set — skipping DevRev ticket creation');
     return;
   }
-  console.log(`DEVREV_TOKEN length: ${token.length}, starts with: ${token.slice(0, 8)}`);
 
   const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const filesToUpload = [

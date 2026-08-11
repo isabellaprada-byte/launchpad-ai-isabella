@@ -7,10 +7,11 @@ const HEADER_MAP: Record<string, keyof CensusEmployee> = {
   // SSN
   ssn: 'ssn', ss: 'ssn', 'ss number': 'ssn', 'social security': 'ssn',
   'social security number': 'ssn', 'social security no': 'ssn',
+  'social security number ssn': 'ssn', 'ssn social security number': 'ssn',
   // Name
-  'last name': 'lastName', lastname: 'lastName', surname: 'lastName',
+  'last name': 'lastName', lastname: 'lastName', lname: 'lastName', ln: 'lastName', surname: 'lastName',
   'legal lastname': 'lastName', 'legal last name': 'lastName',
-  'first name': 'firstName', firstname: 'firstName',
+  'first name': 'firstName', firstname: 'firstName', fname: 'firstName', fn: 'firstName',
   'legal firstname': 'firstName', 'legal first name': 'firstName',
   'middle initial': 'mi', mi: 'mi', middle: 'mi',
   'name middle': 'mi', 'name middle initial': 'mi', 'name mi': 'mi', 'm.i.': 'mi',
@@ -23,7 +24,7 @@ const HEADER_MAP: Record<string, keyof CensusEmployee> = {
   'address street 2': 'street2', address2: 'street2', addr2: 'street2',
   'apt number': 'street2', suite: 'street2', 'apt suite': 'street2',
   city: 'city', 'primary city': 'city', 'address city': 'city',
-  state: 'state', 'primary state': 'state', 'address state': 'state',
+  state: 'state', st: 'state', 'primary state': 'state', 'address state': 'state',
   zip: 'zip', 'zip code': 'zip', postal: 'zip',
   'primary zip': 'zip', 'primary zip code': 'zip',
   'address postal code': 'zip', 'address zip code': 'zip',

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LaunchPad AI",
-  description: "401(k) plan onboarding dashboard for Acme Robotics",
+  title: "Census Upload Portal · ForUsAll",
+  description: "Secure employee census submission portal for ForUsAll 401(k) plan onboarding.",
 };
 
 export default function RootLayout({
