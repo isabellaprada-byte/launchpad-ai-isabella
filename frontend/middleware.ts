@@ -6,6 +6,7 @@ const PUBLIC_PREFIXES = [
   '/upload',
   '/api/census/',
   '/api/auth/',
+  '/api/sponsor-token/',
   '/login',
   '/_next/',
   '/favicon',

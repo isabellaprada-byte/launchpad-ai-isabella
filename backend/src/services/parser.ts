@@ -436,11 +436,11 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
   const rows: unknown[][] = [];
   ws.eachRow(row => { rows.push(row.values as unknown[]); });
 
-  // Auto-detect header row — scan first 6 rows, pick the one with the most field matches.
-  // This handles files with a title row, logo row, or colored banner before the real headers.
+  // Auto-detect header row — scan first 15 rows, pick the one with the most field matches.
+  // This handles files with title rows, logo rows, or colored banner rows before the real headers.
   let headerRowIdx = 0;
   let bestScore = -1;
-  for (let i = 0; i < Math.min(6, rows.length); i++) {
+  for (let i = 0; i < Math.min(15, rows.length); i++) {
     const candidate = (rows[i] as unknown[]).slice(1);
     const score = candidate.filter(h => matchHeader(h) !== undefined).length;
     if (score > bestScore) { bestScore = score; headerRowIdx = i; }

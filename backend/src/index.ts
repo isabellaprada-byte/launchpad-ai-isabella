@@ -4,6 +4,8 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
 import { censusRoutes } from './routes/census';
+import { sharefileAuthRoutes } from './routes/sharefile-auth';
+import { adminRoutes } from './routes/admin';
 
 const app = Fastify({ logger: true });
 
@@ -27,6 +29,8 @@ async function start() {
   });
 
   await app.register(censusRoutes);
+  await app.register(sharefileAuthRoutes);
+  await app.register(adminRoutes);
 
   app.get('/health', async () => ({ status: 'ok' }));
 

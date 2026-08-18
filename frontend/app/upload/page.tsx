@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,23 @@ function stepIndex(step: Step): number {
 export default function UploadPage() {
   const [step, setStep] = useState<Step>('welcome');
   const [sponsorName, setSponsorName] = useState('');
+  const [lockedSponsor, setLockedSponsor] = useState(false);
+  const [isConversion, setIsConversion] = useState(false);
   const [uploaderName, setUploaderName] = useState('');
+
+  // Read pre-filled sponsor from URL params (set by /upload/[token] page)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const company = params.get('company');
+    if (company) {
+      setSponsorName(company);
+      setLockedSponsor(params.get('locked') === '1');
+      const contact = params.get('contact');
+      if (contact) setUploaderName(contact);
+      if (params.get('planType') === 'conversion') setIsConversion(true);
+      // Stay on welcome so sponsor sees personalized instructions first
+    }
+  }, []);
   const [uploaderEmail, setUploaderEmail] = useState('');
   const [uploaderEmailError, setUploaderEmailError] = useState('');
   const [uploaderNameError, setUploaderNameError] = useState('');
@@ -51,6 +67,7 @@ export default function UploadPage() {
   const [downloadInfo, setDownloadInfo] = useState<{ filename: string; base64: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [contactCopied, setContactCopied] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   function hasFullName(name: string): boolean {
     return name.trim().split(/\s+/).length >= 2;
@@ -243,17 +260,31 @@ export default function UploadPage() {
   }
 
   function handleContactUs() {
+    setShowContactModal(true);
+  }
+
+  function handleCopyEmail() {
     const email = 'implementations@forusall.com';
-    const subject = 'Census%20Upload%20Help';
-    const body = 'Hi%2C%20I%20need%20help%20with%20my%20census%20upload.';
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-    // Copy email as fallback for users without a mail client configured
-    setTimeout(() => {
+    const fallback = () => {
+      const el = document.createElement('textarea');
+      el.value = email;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setContactCopied(true);
+      setTimeout(() => setContactCopied(false), 3000);
+    };
+    if (navigator.clipboard) {
       navigator.clipboard.writeText(email).then(() => {
         setContactCopied(true);
         setTimeout(() => setContactCopied(false), 3000);
-      }).catch(() => {});
-    }, 300);
+      }).catch(fallback);
+    } else {
+      fallback();
+    }
   }
 
   function reset() {
@@ -289,7 +320,7 @@ export default function UploadPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            {contactCopied ? '✓ Email copied!' : 'Contact Us'}
+            Contact Us
           </button>
         </div>
       </div>
@@ -333,12 +364,22 @@ export default function UploadPage() {
           {step === 'welcome' && (
             <div className="p-10 space-y-8">
               {/* Header */}
+              {lockedSponsor ? (
+                <div className="text-center space-y-3">
+                  <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest">Welcome</p>
+                  <h2 className="text-3xl font-bold text-slate-900">{sponsorName}</h2>
+                  <p className="text-slate-500 text-base max-w-xl mx-auto">
+                    Your secure census upload page is ready. Please review the instructions below before uploading your file.
+                  </p>
+                </div>
+              ) : (
               <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold text-slate-900">Welcome to ForUsAll</h2>
                 <p className="text-slate-500 text-base max-w-xl mx-auto">
                   This is the secure page to submit your employee census. Please read the instructions below before uploading your file.
                 </p>
               </div>
+              )}
 
               {/* Required fields */}
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
@@ -403,6 +444,25 @@ export default function UploadPage() {
                 </p>
               </div>
 
+              {/* Conversion plan notice */}
+              {isConversion && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-semibold text-amber-900">Additional info needed — Conversion plan</p>
+                    <p className="text-sm text-amber-800 leading-relaxed">
+                      Since this is a conversion from a previous provider, please make sure your census includes the <strong>previous savings rate</strong> for each participant if you can get them.
+                    </p>
+                    <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
+                      <li>Terminated employees <strong>with a remaining balance</strong> should be included — yes, they are mandatory.</li>
+                      <li>If you have any questions about which employees to include, contact us before uploading.</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <a
@@ -445,7 +505,7 @@ export default function UploadPage() {
                     onClick={handleContactUs}
                     className="text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-400 bg-white hover:bg-slate-50 flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    {contactCopied ? '✓ Email copied!' : 'Contact us'}
+                    Contact us
                   </button>
                 </div>
               </div>
@@ -490,13 +550,22 @@ export default function UploadPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Company name</label>
-                <input
-                  type="text"
-                  value={sponsorName}
-                  onChange={e => setSponsorName(e.target.value)}
-                  placeholder="e.g. Acme Corp"
-                  className="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                {lockedSponsor ? (
+                  <div className="w-full border border-slate-200 rounded-xl px-4 py-3 text-base bg-slate-50 text-slate-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    {sponsorName}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={sponsorName}
+                    onChange={e => setSponsorName(e.target.value)}
+                    placeholder="e.g. Acme Corp"
+                    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                )}
               </div>
 
               {/* Replace existing warning — shown when a previous submission is detected */}
@@ -686,7 +755,7 @@ export default function UploadPage() {
                     onClick={handleContactUs}
                     className="text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-400 bg-white hover:bg-slate-50 flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    {contactCopied ? '✓ Email copied!' : 'Contact us'}
+                    Contact us
                   </button>
                 </div>
               </div>
@@ -838,11 +907,75 @@ export default function UploadPage() {
                 <p className="font-semibold text-red-800 text-base">Something went wrong</p>
                 <p className="text-red-600 mt-1">{errorMsg}</p>
               </div>
-              <Button variant="outline" onClick={reset} className="w-full rounded-xl h-11">Try again</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFile(null);
+                  setValidation(null);
+                  setResolvedFlags({});
+                  setPerEmployeeFixes({});
+                  setErrorMsg('');
+                  setShowReplaceWarning(false);
+                  setReplaceExisting(false);
+                  setPreviewEmployees([]);
+                  setDownloadInfo(null);
+                  setStep('input');
+                }}
+                className="w-full rounded-xl h-11"
+              >
+                Try a different file
+              </Button>
+              <button
+                onClick={reset}
+                className="w-full text-sm text-slate-400 hover:text-slate-600 underline underline-offset-2"
+              >
+                Start over (clears all fields)
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Contact Us modal ── */}
+      {showContactModal && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowContactModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-8 space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800">Need help?</h3>
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-sm text-slate-500">
+              Email our implementation team and we'll get back to you shortly.
+            </p>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-blue-800 break-all">implementations@forusall.com</span>
+              <button
+                onClick={handleCopyEmail}
+                className="shrink-0 text-xs font-medium text-blue-600 hover:text-blue-800 border border-blue-300 bg-white hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {contactCopied ? '✓ Copied!' : 'Copy'}
+              </button>
+            </div>
+            <a
+              href="mailto:implementations@forusall.com?subject=Census%20Upload%20Help&body=Hi%2C%20I%20need%20help%20with%20my%20census%20upload."
+              className="block w-full text-center text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 hover:bg-blue-50 rounded-xl px-4 py-3 transition-colors"
+            >
+              Open in email app →
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

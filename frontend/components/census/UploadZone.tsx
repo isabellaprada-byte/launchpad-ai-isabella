@@ -73,7 +73,7 @@ export function UploadZone({ onFile, disabled }: Props) {
         </svg>
       </div>
       <p className="text-slate-600 font-medium">Drop your file here, or <span className="text-blue-600">browse</span></p>
-      <p className="text-slate-400 text-sm mt-1">Excel (.xlsx / .xls) or CSV — up to 10 MB</p>
+      <p className="text-slate-400 text-sm mt-1">Excel (.xlsx / .xls) or CSV — up to 25 MB</p>
     </div>
   );
 }

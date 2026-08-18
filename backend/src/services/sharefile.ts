@@ -1,87 +1,110 @@
-const SUBDOMAIN = process.env.SHAREFILE_SUBDOMAIN ?? 'forus-all';
-const FOLDER_ID = process.env.SHAREFILE_FOLDER_ID ?? 'fo19927c-2e24-4dbe-8b09-6cdce709415a';
-const AUTH_URL  = `https://${SUBDOMAIN}.sharefile.com/oauth/token`;
-const API_BASE  = `https://${SUBDOMAIN}.sf-api.com/sf/v3`;
+import { getSupabase } from './supabase';
 
-// Token cached in memory for the lifetime of the process.
-// On server restart, falls back to password grant automatically.
-let tokenCache: {
-  accessToken:  string;
-  refreshToken: string;
-  expiresAt:    number; // ms since epoch
-} | null = null;
+const DEFAULT_SUBDOMAIN = process.env.SHAREFILE_SUBDOMAIN ?? 'forus-all';
+const FOLDER_ID         = process.env.SHAREFILE_FOLDER_ID ?? '';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-const REFRESH_BUFFER_MS = 30 * 60 * 1000; // renew 30 min before the 8-hour expiry
+// In-memory cache to avoid hitting Supabase on every upload
+let memCache: { accessToken: string; refreshToken: string; expiresAt: number; subdomain: string; apicp: string } | null = null;
+const REFRESH_BUFFER_MS = 30 * 60 * 1000;
 
-function getEnvCredentials() {
+function authUrl(subdomain: string, apicp: string) {
+  return `https://${subdomain}.${apicp}/oauth/token`;
+}
+
+function apiBase(subdomain: string, apicp: string) {
+  return `https://${subdomain}.sf-api.com/sf/v3`;
+}
+
+async function loadTokenFromSupabase(): Promise<typeof memCache> {
+  const supabase = getSupabase();
+  const { data } = await supabase.from('sharefile_tokens').select('*').eq('id', 1).single();
+  if (!data) return null;
+  return {
+    accessToken:  data.access_token,
+    refreshToken: data.refresh_token,
+    expiresAt:    new Date(data.expires_at).getTime(),
+    subdomain:    data.subdomain ?? DEFAULT_SUBDOMAIN,
+    apicp:        data.apicp ?? 'sharefile.com',
+  };
+}
+
+async function saveTokenToSupabase(token: typeof memCache) {
+  if (!token) return;
+  const supabase = getSupabase();
+  await supabase.from('sharefile_tokens').upsert({
+    id:            1,
+    access_token:  token.accessToken,
+    refresh_token: token.refreshToken,
+    expires_at:    new Date(token.expiresAt).toISOString(),
+    subdomain:     token.subdomain,
+    apicp:         token.apicp,
+  });
+}
+
+async function refreshAccessToken(token: NonNullable<typeof memCache>): Promise<NonNullable<typeof memCache>> {
   const clientId     = process.env.SHAREFILE_CLIENT_ID;
   const clientSecret = process.env.SHAREFILE_CLIENT_SECRET;
-  const username     = process.env.SHAREFILE_USERNAME;
-  const password     = process.env.SHAREFILE_PASSWORD;
-  if (!clientId || !clientSecret || !username || !password) {
-    throw new Error('ShareFile credentials not configured (SHAREFILE_CLIENT_ID, SHAREFILE_CLIENT_SECRET, SHAREFILE_USERNAME, SHAREFILE_PASSWORD)');
-  }
-  return { clientId, clientSecret, username, password };
-}
+  if (!clientId || !clientSecret) throw new Error('ShareFile credentials not configured');
 
-async function authWithPassword(): Promise<void> {
-  const { clientId, clientSecret, username, password } = getEnvCredentials();
-  const res = await fetch(AUTH_URL, {
+  const res = await fetch(authUrl(token.subdomain, token.apicp), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'password', client_id: clientId, client_secret: clientSecret, username, password }),
+    body: new URLSearchParams({
+      grant_type:    'refresh_token',
+      refresh_token: token.refreshToken,
+      client_id:     clientId,
+      client_secret: clientSecret,
+    }),
   });
-  if (!res.ok) throw new Error(`ShareFile password auth failed: ${res.status} ${await res.text()}`);
-  const json = await res.json() as { access_token: string; refresh_token: string; expires_in: number };
-  tokenCache = {
-    accessToken:  json.access_token,
-    refreshToken: json.refresh_token,
-    expiresAt:    Date.now() + json.expires_in * 1000,
-  };
-}
 
-async function authWithRefresh(): Promise<void> {
-  if (!tokenCache?.refreshToken) throw new Error('No refresh token available');
-  const { clientId, clientSecret } = getEnvCredentials();
-  const res = await fetch(AUTH_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: tokenCache.refreshToken, client_id: clientId, client_secret: clientSecret }),
-  });
   if (!res.ok) throw new Error(`ShareFile token refresh failed: ${res.status} ${await res.text()}`);
   const json = await res.json() as { access_token: string; refresh_token: string; expires_in: number };
-  tokenCache = {
+
+  return {
     accessToken:  json.access_token,
     refreshToken: json.refresh_token,
     expiresAt:    Date.now() + json.expires_in * 1000,
+    subdomain:    token.subdomain,
+    apicp:        token.apicp,
   };
 }
 
-async function getAccessToken(): Promise<string> {
+async function getAccessToken(): Promise<{ token: string; subdomain: string; apicp: string }> {
   const now = Date.now();
 
-  // Token is valid and not near expiry
-  if (tokenCache && tokenCache.expiresAt - REFRESH_BUFFER_MS > now) {
-    return tokenCache.accessToken;
+  // Try memory cache first
+  if (memCache && memCache.expiresAt - REFRESH_BUFFER_MS > now) {
+    return { token: memCache.accessToken, subdomain: memCache.subdomain, apicp: memCache.apicp };
   }
 
-  // Token is near expiry — try refresh first, fall back to password grant
-  if (tokenCache?.refreshToken) {
+  // Load from Supabase if not in memory
+  if (!memCache) {
+    memCache = await loadTokenFromSupabase();
+  }
+
+  if (!memCache) {
+    throw new Error('ShareFile not connected. Visit http://localhost:4000/api/sharefile/setup to connect.');
+  }
+
+  // Refresh if near expiry
+  if (memCache.expiresAt - REFRESH_BUFFER_MS <= now) {
     try {
-      await authWithRefresh();
-      return tokenCache!.accessToken;
-    } catch {
-      // refresh failed (e.g. revoked), fall through to password grant
+      memCache = await refreshAccessToken(memCache);
+      await saveTokenToSupabase(memCache);
+    } catch (err) {
+      console.error('ShareFile token refresh failed, clearing cache:', err);
+      memCache = null;
+      throw new Error('ShareFile token expired. Visit http://localhost:4000/api/sharefile/setup to reconnect.');
     }
   }
 
-  // No token or refresh failed — authenticate fresh
-  await authWithPassword();
-  return tokenCache!.accessToken;
+  return { token: memCache.accessToken, subdomain: memCache.subdomain, apicp: memCache.apicp };
 }
 
-async function uploadFile(token: string, folderId: string, fileName: string, content: Buffer, mimeType: string): Promise<void> {
-  const uploadInfoRes = await fetch(`${API_BASE}/Items(${folderId})/Upload2`, {
+async function uploadFile(token: string, subdomain: string, apicp: string, folderId: string, fileName: string, content: Buffer, mimeType: string): Promise<void> {
+  const base = apiBase(subdomain, apicp);
+  const uploadInfoRes = await fetch(`${base}/Items(${folderId})/Upload2`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ Method: 'Standard', Raw: true, FileName: fileName }),
@@ -97,10 +120,10 @@ async function uploadFile(token: string, folderId: string, fileName: string, con
   if (!uploadRes.ok) throw new Error(`ShareFile file upload failed: ${uploadRes.status} ${await uploadRes.text()}`);
 }
 
-const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
 export async function uploadCensusToShareFile(params: {
   sponsorName:      string;
+  uploaderName:     string;
+  uploaderEmail:    string;
   dateStr:          string;
   originalBuffer:   Buffer;
   originalFilename: string;
@@ -109,12 +132,19 @@ export async function uploadCensusToShareFile(params: {
   ltBuffer:         Buffer;
   ltFilename:       string;
 }): Promise<{ folderUrl: string }> {
-  const token = await getAccessToken();
+  const { token, subdomain, apicp } = await getAccessToken();
+  const base = apiBase(subdomain, apicp);
 
-  const safeName   = params.sponsorName.replace(/[/\\:*?"<>|]/g, '').trim();
-  const folderName = `${safeName} - ${params.dateStr}`;
+  const sanitize  = (s: string) => s.replace(/[/\\:*?"<>|]/g, '').trim();
+  const safeName  = sanitize(params.sponsorName);
+  const uploader  = params.uploaderName ? sanitize(params.uploaderName) : '';
+  const email     = params.uploaderEmail ? params.uploaderEmail.trim() : '';
+  const uploaderPart = uploader ? (email ? `${uploader} (${email})` : uploader) : '';
+  const folderName = uploaderPart
+    ? `${safeName} - ${uploaderPart} - ${params.dateStr}`
+    : `${safeName} - ${params.dateStr}`;
 
-  const folderRes = await fetch(`${API_BASE}/Items(${FOLDER_ID})/Folder`, {
+  const folderRes = await fetch(`${base}/Items(${FOLDER_ID})/Folder`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ Name: folderName, Description: 'Census submission' }),
@@ -123,10 +153,10 @@ export async function uploadCensusToShareFile(params: {
   const { Id: subFolderId } = await folderRes.json() as { Id: string };
 
   await Promise.all([
-    uploadFile(token, subFolderId, params.originalFilename, params.originalBuffer, 'application/octet-stream'),
-    uploadFile(token, subFolderId, params.adminFilename,    params.adminBuffer,    XLSX_MIME),
-    uploadFile(token, subFolderId, params.ltFilename,       params.ltBuffer,       XLSX_MIME),
+    uploadFile(token, subdomain, apicp, subFolderId, params.originalFilename, params.originalBuffer, 'application/octet-stream'),
+    uploadFile(token, subdomain, apicp, subFolderId, params.adminFilename,    params.adminBuffer,    XLSX_MIME),
+    uploadFile(token, subdomain, apicp, subFolderId, params.ltFilename,       params.ltBuffer,       XLSX_MIME),
   ]);
 
-  return { folderUrl: `https://${SUBDOMAIN}.sharefile.com/folderID/${subFolderId}` };
+  return { folderUrl: `https://${subdomain}.sharefile.com/folderID/${subFolderId}` };
 }

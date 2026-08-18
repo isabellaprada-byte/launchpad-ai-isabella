@@ -239,6 +239,8 @@ export async function censusRoutes(app: FastifyInstance) {
       try {
         const sfResult = await uploadCensusToShareFile({
           sponsorName: safeName,
+          uploaderName: uploaderName,
+          uploaderEmail: uploaderEmail,
           dateStr: isoDate,
           originalBuffer: fileBuffer,
           originalFilename: filename,
