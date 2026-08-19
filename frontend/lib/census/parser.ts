@@ -439,7 +439,7 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
   // This handles files with a title row, logo row, or colored banner before the real headers.
   let headerRowIdx = 0;
   let bestScore = -1;
-  for (let i = 0; i < Math.min(6, rows.length); i++) {
+  for (let i = 0; i < Math.min(15, rows.length); i++) {
     const candidate = (rows[i] as unknown[]).slice(1);
     const score = candidate.filter(h => matchHeader(h) !== undefined).length;
     if (score > bestScore) { bestScore = score; headerRowIdx = i; }

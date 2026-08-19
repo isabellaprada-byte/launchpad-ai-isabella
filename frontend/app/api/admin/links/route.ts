@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
+import { getSupabase } from '@/lib/supabase';
 
-const BACKEND = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:4000';
-const PASSWORD = process.env.DASHBOARD_PASSWORD ?? '';
+function checkAuth(req: Request): boolean {
+  const password = process.env.DASHBOARD_PASSWORD ?? '';
+  return req.headers.get('x-admin-password') === password;
+}
 
-export async function GET() {
-  const res = await fetch(`${BACKEND}/api/admin/links`, {
-    headers: { 'x-admin-password': PASSWORD },
-  });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+export async function GET(req: Request) {
+  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('sponsor_tokens')
+    .select('id, token, sponsor_name, sponsor_email, created_by, created_at, expires_at, used_count, last_used_at')
+    .order('created_at', { ascending: false });
+
+  if (error) return NextResponse.json({ error: 'Failed to fetch links' }, { status: 500 });
+  return NextResponse.json({ links: data });
 }

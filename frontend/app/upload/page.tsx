@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
 import { Button } from '@/components/ui/button';
 import { UploadZone } from '@/components/census/UploadZone';
 import { ValidationPanel } from '@/components/census/ValidationPanel';
@@ -90,7 +89,7 @@ export default function UploadPage() {
       try {
         const checkCtrl = new AbortController();
         const checkTimeout = setTimeout(() => checkCtrl.abort(), 8000);
-        const checkRes = await fetch(`${API_BASE}/api/census/check-email?email=${encodeURIComponent(uploaderEmail.trim())}`, { signal: checkCtrl.signal });
+        const checkRes = await fetch(`/api/census/check-email?email=${encodeURIComponent(uploaderEmail.trim())}`, { signal: checkCtrl.signal });
         clearTimeout(checkTimeout);
         const checkJson = await checkRes.json();
         if (checkJson.hasExisting) {
@@ -111,7 +110,7 @@ export default function UploadPage() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 28000);
-      const res = await fetch(`${API_BASE}/api/census/validate`, { method: 'POST', body: fd, signal: controller.signal });
+      const res = await fetch(`/api/census/validate`, { method: 'POST', body: fd, signal: controller.signal });
       clearTimeout(timeout);
       const json = await res.json();
       if (!res.ok) { setErrorMsg(json.error ?? 'Validation failed'); setStep('error'); return; }
@@ -182,7 +181,7 @@ export default function UploadPage() {
     fd.append('acknowledgedFields', JSON.stringify(acknowledgedFieldsList()));
     fd.append('perEmployeeFixes', JSON.stringify(perEmployeeFixes));
     fd.append('rowFixes', JSON.stringify(rowFixesList()));
-    const res = await fetch(`${API_BASE}/api/census/preview`, { method: 'POST', body: fd });
+    const res = await fetch(`/api/census/preview`, { method: 'POST', body: fd });
     const json = await res.json();
     if (!res.ok) {
       if (res.status === 422 && Array.isArray(json.flags) && json.flags.length > 0) {
@@ -240,7 +239,7 @@ export default function UploadPage() {
     fd.append('perEmployeeFixes', JSON.stringify(perEmployeeFixes));
     fd.append('rowFixes', JSON.stringify(rowFixesList()));
     fd.append('replaceExisting', String(replaceExisting));
-    const res = await fetch(`${API_BASE}/api/census/submit`, { method: 'POST', body: fd });
+    const res = await fetch(`/api/census/submit`, { method: 'POST', body: fd });
     const json = await res.json();
     if (!res.ok) { setErrorMsg(json.error ?? 'Submission failed'); setStep('error'); return; }
     if (json.adminBase64) setDownloadInfo({ filename: json.adminFilename, base64: json.adminBase64 });

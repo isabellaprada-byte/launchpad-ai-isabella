@@ -102,6 +102,7 @@ export function titleCase(v: unknown): string {
   const tokens = s.split(/\s+/);
   const result = tokens.map((t, i) => {
     const capped = capToken(t);
+    if (!capped) return capped;
     // First token always capitalized
     if (i === 0 && capped[0] === capped[0].toLowerCase()) {
       return capped.charAt(0).toUpperCase() + capped.slice(1);

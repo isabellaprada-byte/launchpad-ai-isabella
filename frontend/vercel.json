@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/census/submit/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/census/validate/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/census/preview/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
-
-const BACKEND = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:4000';
+import { getSupabase } from '@/lib/supabase';
 
 export default async function SponsorUploadPage({
   params,
@@ -12,28 +11,34 @@ export default async function SponsorUploadPage({
   const { token } = await params;
   const { contact, planType } = await searchParams;
 
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('sponsor_tokens')
+    .select('sponsor_name, expires_at')
+    .eq('token', token)
+    .single();
+
   let sponsorName: string | null = null;
   let errorMsg = '';
 
-  try {
-    const res = await fetch(`${BACKEND}/api/sponsor-token/${token}`, { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json() as { sponsorName: string };
-      sponsorName = data.sponsorName;
-    } else if (res.status === 410) {
-      errorMsg = 'This upload link has expired. Please contact your ForUsAll implementation specialist for a new link.';
-    } else {
-      errorMsg = 'This upload link is not valid. Please check the link in your email or contact ForUsAll.';
-    }
-  } catch {
-    errorMsg = 'Unable to verify this link. Please try again or contact implementations@forusall.com.';
+  if (error || !data) {
+    errorMsg = 'This upload link is not valid. Please check the link in your email or contact ForUsAll.';
+  } else if (new Date(data.expires_at) < new Date()) {
+    errorMsg = 'This upload link has expired. Please contact your ForUsAll implementation specialist for a new link.';
+  } else {
+    sponsorName = data.sponsor_name;
+    // Bump last_used_at (fire and forget)
+    supabase.from('sponsor_tokens')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('token', token)
+      .then(() => {});
   }
 
   if (sponsorName) {
     const url = new URL('/upload', 'http://x');
     url.searchParams.set('company', sponsorName);
     url.searchParams.set('locked', '1');
-    if (contact) url.searchParams.set('contact', contact);
+    if (contact)  url.searchParams.set('contact', contact);
     if (planType) url.searchParams.set('planType', planType);
     redirect(url.pathname + url.search);
   }
