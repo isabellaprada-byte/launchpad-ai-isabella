@@ -8,7 +8,7 @@ export async function GET(req: Request) {
 
   try {
     const contacts = await searchContacts(q);
-    return NextResponse.json(contacts);
+    return NextResponse.json({ contacts });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
