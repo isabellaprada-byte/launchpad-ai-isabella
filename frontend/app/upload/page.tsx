@@ -185,7 +185,8 @@ export default function UploadPage() {
     fd.append('perEmployeeFixes', JSON.stringify(perEmployeeFixes));
     fd.append('rowFixes', JSON.stringify(rowFixesList()));
     let res: Response;
-    let json: Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let json: any;
     try {
       res = await fetch(`/api/census/preview`, { method: 'POST', body: fd });
       json = await res.json();
@@ -230,11 +231,11 @@ export default function UploadPage() {
         setStep('review');
         return;
       }
-      setErrorMsg(json.error ?? 'Preview failed');
+      setErrorMsg(String(json?.error ?? 'Preview failed'));
       setStep('error');
       return;
     }
-    setPreviewEmployees(json.employees);
+    setPreviewEmployees(json.employees as CensusEmployee[]);
     setStep('preview');
   }
 
