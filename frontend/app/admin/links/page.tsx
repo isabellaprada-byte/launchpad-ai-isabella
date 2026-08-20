@@ -106,6 +106,7 @@ export default function AdminLinksPage() {
           sponsorEmail: activeEmail.trim(),
           createdBy: createdBy.trim(),
           sendEmail,
+          contactName: selected?.name ?? undefined,
         }),
       });
       const data = await res.json() as { link?: string; error?: string };

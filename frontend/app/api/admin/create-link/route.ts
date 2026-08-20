@@ -4,18 +4,20 @@ import { getSupabase } from '@/lib/supabase';
 
 const TOKEN_DAYS = 60;
 
-async function sendLinkEmail(to: string, sponsorName: string, link: string): Promise<void> {
+async function sendLinkEmail(to: string, sponsorName: string, link: string, contactName?: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
+  const greeting = contactName ? `Hi ${contactName.split(' ')[0]},` : 'Hi,';
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from:    'ForUsAll Implementations <onboarding@resend.dev>',
-      to:      [to],
-      subject: `Your ForUsAll Census Upload Link — ${sponsorName}`,
+      from:     'ForUsAll Implementations <onboarding@resend.dev>',
+      reply_to: 'implementations@forusall.com',
+      to:       [to],
+      subject:  `Your ForUsAll Census Upload Link — ${sponsorName}`,
       html: `
-        <p>Hi,</p>
+        <p>${greeting}</p>
         <p>Here is your personalized census upload link for <strong>${sponsorName}</strong>:</p>
         <p><a href="${link}" style="font-size:16px;">${link}</a></p>
         <p>This link is ready to use and will work for 60 days. You can upload your census file directly — no login required.</p>
@@ -27,8 +29,8 @@ async function sendLinkEmail(to: string, sponsorName: string, link: string): Pro
 }
 
 export async function POST(req: Request) {
-  const { sponsorName, sponsorEmail, createdBy, sendEmail } = await req.json() as {
-    sponsorName: string; sponsorEmail: string; createdBy: string; sendEmail?: boolean;
+  const { sponsorName, sponsorEmail, createdBy, sendEmail, contactName } = await req.json() as {
+    sponsorName: string; sponsorEmail: string; createdBy: string; sendEmail?: boolean; contactName?: string;
   };
 
   if (!sponsorName?.trim() || !sponsorEmail?.trim() || !createdBy?.trim()) {
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
 
   if (sendEmail) {
     try {
-      await sendLinkEmail(sponsorEmail.trim(), sponsorName.trim(), link);
+      await sendLinkEmail(sponsorEmail.trim(), sponsorName.trim(), link, contactName);
     } catch (err) {
       console.error('Email send failed (non-fatal):', err);
     }
