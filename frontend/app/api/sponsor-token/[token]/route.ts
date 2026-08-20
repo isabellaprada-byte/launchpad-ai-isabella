@@ -7,7 +7,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
 
   const { data, error } = await supabase
     .from('sponsor_tokens')
-    .select('sponsor_name, sponsor_email, expires_at')
+    .select('sponsor_name, sponsor_email, expires_at, used_count')
     .eq('token', token)
     .single();
 
@@ -16,9 +16,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     return NextResponse.json({ error: 'Link expired' }, { status: 410 });
   }
 
-  // Bump last_used_at (fire and forget)
+  // Bump last_used_at and used_count (fire and forget)
   supabase.from('sponsor_tokens')
-    .update({ last_used_at: new Date().toISOString() })
+    .update({ last_used_at: new Date().toISOString(), used_count: (data.used_count || 0) + 1 })
     .eq('token', token)
     .then(() => {});
 

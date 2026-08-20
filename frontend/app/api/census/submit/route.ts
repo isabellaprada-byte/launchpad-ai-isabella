@@ -14,6 +14,13 @@ export const maxDuration = 60;
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const MAX_SUBMISSIONS_PER_EMAIL = 4;
 
+const ALLOWED_EMPLOYEE_FIELDS = new Set([
+  'firstName','lastName','middleName','ssn','email','email2','phone',
+  'street1','street2','city','state','zip','dob','doh','dot',
+  'gender','division','rehireDate','salary','employmentType',
+  'deferralRate','rothRate','prevDeferralRate',
+]);
+
 function hashEmail(email: string): string {
   return createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
 }
@@ -40,6 +47,24 @@ export async function POST(req: Request) {
 
     const uploaderName  = ((formData.get('uploaderName')  as string) ?? '').trim();
     const uploaderEmail = ((formData.get('uploaderEmail') as string) ?? '').trim();
+    const sponsorToken  = ((formData.get('sponsorToken')  as string) ?? '').trim();
+
+    if (!uploaderEmail) {
+      return NextResponse.json({ error: 'Uploader email is required' }, { status: 400 });
+    }
+
+    // If a sponsor token was provided, validate it
+    if (sponsorToken) {
+      const supabase = getSupabase();
+      const { data: tokenData } = await supabase
+        .from('sponsor_tokens')
+        .select('expires_at')
+        .eq('token', sponsorToken)
+        .single();
+      if (!tokenData || new Date(tokenData.expires_at) < new Date()) {
+        return NextResponse.json({ error: 'Upload link is invalid or expired.' }, { status: 403 });
+      }
+    }
     const replaceExisting = formData.get('replaceExisting') === 'true';
     const acknowledgedFields: string[] = JSON.parse((formData.get('acknowledgedFields') as string) ?? '[]');
     const perEmployeeFixes: Record<string, Record<string, string>> = JSON.parse((formData.get('perEmployeeFixes') as string) ?? '{}');
@@ -83,12 +108,14 @@ export async function POST(req: Request) {
     }
 
     for (const [field, values] of Object.entries(perEmployeeFixes)) {
+      if (!ALLOWED_EMPLOYEE_FIELDS.has(field)) continue;
       for (const [idxStr, val] of Object.entries(values)) {
         const emp = parseResult.employees[parseInt(idxStr)];
         if (emp && val) (emp as unknown as Record<string, unknown>)[field] = cleanFieldValue(field, val);
       }
     }
     for (const fix of rowFixes) {
+      if (!ALLOWED_EMPLOYEE_FIELDS.has(fix.field)) continue;
       const emp = parseResult.employees[fix.rowIndex];
       if (emp && fix.value) (emp as unknown as Record<string, unknown>)[fix.field] = cleanFieldValue(fix.field, fix.value);
     }

@@ -38,6 +38,7 @@ export default function UploadPage() {
   const [sponsorName, setSponsorName] = useState('');
   const [lockedSponsor, setLockedSponsor] = useState(false);
   const [isConversion, setIsConversion] = useState(false);
+  const [sponsorToken, setSponsorToken] = useState('');
   const [uploaderName, setUploaderName] = useState('');
 
   // Read pre-filled sponsor from URL params (set by /upload/[token] page)
@@ -47,6 +48,8 @@ export default function UploadPage() {
     if (company) {
       setSponsorName(company);
       setLockedSponsor(params.get('locked') === '1');
+      const tok = params.get('token');
+      if (tok) setSponsorToken(tok);
       const contact = params.get('contact');
       if (contact) setUploaderName(contact);
       if (params.get('planType') === 'conversion') setIsConversion(true);
@@ -239,6 +242,7 @@ export default function UploadPage() {
     fd.append('perEmployeeFixes', JSON.stringify(perEmployeeFixes));
     fd.append('rowFixes', JSON.stringify(rowFixesList()));
     fd.append('replaceExisting', String(replaceExisting));
+    if (sponsorToken) fd.append('sponsorToken', sponsorToken);
     const res = await fetch(`/api/census/submit`, { method: 'POST', body: fd });
     const json = await res.json();
     if (!res.ok) { setErrorMsg(json.error ?? 'Submission failed'); setStep('error'); return; }

@@ -4,6 +4,8 @@ import { validateEmployees } from '@/lib/census/validator';
 
 export const maxDuration = 60;
 
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -11,6 +13,10 @@ export async function POST(req: Request) {
     if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
 
     const buffer = await file.arrayBuffer();
+    if (buffer.byteLength > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: 'File too large. Maximum allowed size is 25 MB.' }, { status: 413 });
+    }
+
     let parseResult;
     try {
       parseResult = await parseCensusFile(buffer, file.name);
@@ -37,6 +43,7 @@ export async function POST(req: Request) {
       employeeNames: parseResult.employees.map(e => ({ firstName: e.firstName, lastName: e.lastName })),
     });
   } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    console.error('Validate error:', err);
+    return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 });
   }
 }

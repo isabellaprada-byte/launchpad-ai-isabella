@@ -14,7 +14,7 @@ export default async function SponsorUploadPage({
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('sponsor_tokens')
-    .select('sponsor_name, expires_at')
+    .select('sponsor_name, expires_at, used_count')
     .eq('token', token)
     .single();
 
@@ -27,9 +27,9 @@ export default async function SponsorUploadPage({
     errorMsg = 'This upload link has expired. Please contact your ForUsAll implementation specialist for a new link.';
   } else {
     sponsorName = data.sponsor_name;
-    // Bump last_used_at (fire and forget)
+    // Bump last_used_at and used_count (fire and forget)
     supabase.from('sponsor_tokens')
-      .update({ last_used_at: new Date().toISOString() })
+      .update({ last_used_at: new Date().toISOString(), used_count: (data.used_count || 0) + 1 })
       .eq('token', token)
       .then(() => {});
   }
@@ -38,6 +38,7 @@ export default async function SponsorUploadPage({
     const url = new URL('/upload', 'http://x');
     url.searchParams.set('company', sponsorName);
     url.searchParams.set('locked', '1');
+    url.searchParams.set('token', token);
     if (contact)  url.searchParams.set('contact', contact);
     if (planType) url.searchParams.set('planType', planType);
     redirect(url.pathname + url.search);

@@ -27,7 +27,10 @@ async function getAccessToken(): Promise<string> {
   });
 
   const data = await res.json() as Record<string, unknown>;
-  if (!data.access_token) throw new Error(`Bigin token refresh failed: ${JSON.stringify(data)}`);
+  if (!data.access_token) {
+    console.error('Bigin token refresh failed:', JSON.stringify(data));
+    throw new Error('Bigin authentication failed');
+  }
 
   cachedToken = {
     access:    data.access_token as string,
@@ -66,7 +69,10 @@ export async function searchContacts(query: string): Promise<BiginContact[]> {
     headers: { Authorization: `Zoho-oauthtoken ${token}` },
   });
   if (res.status === 204) return [];
-  if (!res.ok) throw new Error(`Bigin search failed (${res.status}): ${await res.text()}`);
+  if (!res.ok) {
+    console.error(`Bigin search failed (${res.status}):`, await res.text());
+    throw new Error('Bigin search failed');
+  }
 
   const data = await res.json() as { data?: Record<string, unknown>[] };
   if (!data.data) return [];

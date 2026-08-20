@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const contacts = await searchContacts(q);
     return NextResponse.json({ contacts });
   } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    console.error('Bigin search error:', err);
+    return NextResponse.json({ error: 'Search unavailable. Please try again.' }, { status: 500 });
   }
 }

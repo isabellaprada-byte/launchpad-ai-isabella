@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 function getSupabase() {
@@ -9,23 +10,38 @@ function getRedirectUri() {
   return `${base}/api/sharefile/callback`;
 }
 
-function html(title: string, body: string) {
+function esc(s: string): string {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function html(title: string, body: string, clearCookie = false) {
+  const headers: Record<string, string> = { 'Content-Type': 'text/html' };
+  if (clearCookie) headers['Set-Cookie'] = 'sf_oauth_state=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax';
   return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body style="font-family:sans-serif;padding:40px;text-align:center">${body}</body></html>`,
-    { headers: { 'Content-Type': 'text/html' } },
+    `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title></head><body style="font-family:sans-serif;padding:40px;text-align:center">${body}</body></html>`,
+    { headers },
   );
 }
 
-export async function GET(req: Request) {
+const ALLOWED_APICP = ['sharefile.com', 'eu.sharefile.com'];
+
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code        = searchParams.get('code');
   const subdomain   = searchParams.get('subdomain');
   const apicp       = searchParams.get('apicp');
   const error       = searchParams.get('error');
   const errorDesc   = searchParams.get('error_description');
+  const stateParam  = searchParams.get('state');
 
   if (error) {
-    return html('Error', `<h2>❌ Authentication error</h2><p>${errorDesc ?? error}</p>`);
+    return html('Error', `<h2>❌ Authentication error</h2><p>${esc(errorDesc ?? error ?? 'Unknown error')}</p>`, true);
+  }
+
+  // Verify OAuth state to prevent CSRF
+  const stateCookie = req.cookies.get('sf_oauth_state')?.value;
+  if (!stateCookie || !stateParam || stateCookie !== stateParam) {
+    return html('Error', '<h2>❌ Invalid session</h2><p>Please visit /api/sharefile/setup again to reconnect.</p>', true);
   }
 
   if (!code) return new Response('Missing code', { status: 400 });
@@ -36,8 +52,13 @@ export async function GET(req: Request) {
     return new Response('ShareFile credentials not configured', { status: 500 });
   }
 
-  const resolvedSubdomain = subdomain ?? process.env.SHAREFILE_SUBDOMAIN ?? 'forus-all';
-  const resolvedApicp     = apicp ?? 'sharefile.com';
+  // SSRF protection: only allow known ShareFile domains and the configured subdomain
+  const resolvedApicp = apicp ?? 'sharefile.com';
+  if (!ALLOWED_APICP.includes(resolvedApicp)) {
+    return new Response('Invalid apicp parameter', { status: 400 });
+  }
+  const allowedSubdomain = process.env.SHAREFILE_SUBDOMAIN ?? 'forus-all';
+  const resolvedSubdomain = (subdomain && /^[a-z0-9-]+$/.test(subdomain)) ? subdomain : allowedSubdomain;
   const tokenUrl = `https://${resolvedSubdomain}.${resolvedApicp}/oauth/token`;
 
   const tokenRes = await fetch(tokenUrl, {
@@ -79,5 +100,5 @@ export async function GET(req: Request) {
   return html('ShareFile Connected', `
     <h2>✅ ShareFile connected successfully</h2>
     <p>The portal can now upload files to your folder. You can close this window.</p>
-  `);
+  `, true);
 }
