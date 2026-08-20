@@ -20,7 +20,12 @@ const STATE_MAP: Record<string, string> = {
 export function cleanSSN(v: unknown): string {
   if (!v) return '';
   const s = String(v).replace(/[\s\t\-]/g, '');
-  if (/^\d{9}$/.test(s)) return `${s.slice(0,3)}-${s.slice(3,5)}-${s.slice(5)}`;
+  // Pad to 9 digits — Excel drops leading zeros when SSN is stored as a number
+  // (e.g. 023-45-6789 becomes integer 23456789, 8 digits)
+  if (/^\d{7,9}$/.test(s)) {
+    const padded = s.padStart(9, '0');
+    return `${padded.slice(0,3)}-${padded.slice(3,5)}-${padded.slice(5)}`;
+  }
   // already formatted
   if (/^\d{3}-\d{2}-\d{4}$/.test(String(v).trim())) return String(v).trim();
   return String(v).trim();
@@ -46,17 +51,19 @@ export function cleanDate(v: unknown): string {
   // yyyy-mm-dd
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[2]}/${iso[3]}/${iso[1]}`;
-  // Excel serial number
-  if (/^\d{4,5}$/.test(s)) {
+  // Excel serial number — only 5-digit serials (all valid employee dates land here:
+  // 1940=14610, 2030=47118). 4-digit values are almost certainly years like "1985",
+  // not serials — treating them as serials produces nonsense dates around 1903.
+  if (/^\d{5}$/.test(s)) {
     const d = new Date((parseInt(s) - 25569) * 86400000);
     if (!isNaN(d.getTime())) {
       return `${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${d.getUTCFullYear()}`;
     }
   }
-  // Try JS Date parse as fallback
+  // Try JS Date parse as fallback — use UTC to avoid timezone-driven off-by-one day
   const d = new Date(s);
   if (!isNaN(d.getTime())) {
-    return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+    return `${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${d.getUTCFullYear()}`;
   }
   return s;
 }

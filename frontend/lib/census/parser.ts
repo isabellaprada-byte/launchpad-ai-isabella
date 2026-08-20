@@ -462,12 +462,12 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
 
   const employees: CensusEmployee[] = [];
   for (const cells of dataRows) {
-    if (cells.every(c => c == null || c === '')) continue;
+    if (cells.every(c => c == null || String(c ?? '').trim() === '')) continue;
     // Skip sparse rows — section headers, totals rows, or colored separators typically
     // have fewer than 2 recognizable fields. Real employee rows always have SSN + name at minimum.
     const nonEmptyMapped = Object.keys(fieldMap).filter(i => {
       const v = cellValue(cells[parseInt(i)]);
-      return v != null && v !== '';
+      return v != null && String(v).trim() !== '';
     }).length;
     if (nonEmptyMapped < 2) continue;
     try {
