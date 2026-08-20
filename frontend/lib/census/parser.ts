@@ -470,13 +470,6 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
       return v != null && v !== '';
     }).length;
     if (nonEmptyMapped < 2) continue;
-    // Skip rows that lack a plausible SSN — colored separators, section headers, and
-    // totals rows never contain 9-digit values; every real employee row must have one.
-    const ssnColIdx = parseInt(Object.entries(fieldMap).find(([, v]) => v === 'ssn')?.[0] ?? '-1');
-    if (ssnColIdx >= 0) {
-      const rawSsn = String(cellValue(cells[ssnColIdx]) ?? '').trim().replace(/[\s\-]/g, '');
-      if (!/^\d{9}$/.test(rawSsn)) continue;
-    }
     try {
       employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
     } catch {
