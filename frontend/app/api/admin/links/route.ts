@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
 
-function checkAuth(req: Request): boolean {
-  const password = process.env.DASHBOARD_PASSWORD ?? '';
-  return req.headers.get('x-admin-password') === password;
-}
-
 export async function GET(req: Request) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('sponsor_tokens')

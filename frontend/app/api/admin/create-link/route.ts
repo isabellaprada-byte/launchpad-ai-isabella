@@ -4,11 +4,6 @@ import { getSupabase } from '@/lib/supabase';
 
 const TOKEN_DAYS = 60;
 
-function checkAuth(req: Request): boolean {
-  const password = process.env.DASHBOARD_PASSWORD ?? '';
-  return req.headers.get('x-admin-password') === password;
-}
-
 async function sendLinkEmail(to: string, sponsorName: string, link: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
@@ -32,8 +27,6 @@ async function sendLinkEmail(to: string, sponsorName: string, link: string): Pro
 }
 
 export async function POST(req: Request) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const { sponsorName, sponsorEmail, createdBy, sendEmail } = await req.json() as {
     sponsorName: string; sponsorEmail: string; createdBy: string; sendEmail?: boolean;
   };
