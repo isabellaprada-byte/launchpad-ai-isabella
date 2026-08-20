@@ -184,8 +184,16 @@ export default function UploadPage() {
     fd.append('acknowledgedFields', JSON.stringify(acknowledgedFieldsList()));
     fd.append('perEmployeeFixes', JSON.stringify(perEmployeeFixes));
     fd.append('rowFixes', JSON.stringify(rowFixesList()));
-    const res = await fetch(`/api/census/preview`, { method: 'POST', body: fd });
-    const json = await res.json();
+    let res: Response;
+    let json: Record<string, unknown>;
+    try {
+      res = await fetch(`/api/census/preview`, { method: 'POST', body: fd });
+      json = await res.json();
+    } catch {
+      setErrorMsg('Could not reach the server. Please try again.');
+      setStep('error');
+      return;
+    }
     if (!res.ok) {
       if (res.status === 422 && Array.isArray(json.flags) && json.flags.length > 0) {
         const serverFlags = json.flags as ValidationFlag[];

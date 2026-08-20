@@ -205,6 +205,7 @@ function cellValue(v: unknown): unknown {
     if ('richText' in o && Array.isArray(o.richText)) {
       return (o.richText as Array<{ text?: string }>).map(r => r.text ?? '').join('');
     }
+    return ''; // unrecognized exceljs object — return empty rather than leaking a raw object into JSX
   }
   // Strip Excel text-prefix apostrophe (stored internally when user types '123 to force text)
   if (typeof v === 'string' && v.startsWith("'") && v.length > 1) return v.slice(1);
@@ -469,6 +470,13 @@ async function parseXLSX(buffer: ArrayBuffer): Promise<ParseResult> {
       return v != null && v !== '';
     }).length;
     if (nonEmptyMapped < 2) continue;
+    // Skip rows that lack a plausible SSN — colored separators, section headers, and
+    // totals rows never contain 9-digit values; every real employee row must have one.
+    const ssnColIdx = parseInt(Object.entries(fieldMap).find(([, v]) => v === 'ssn')?.[0] ?? '-1');
+    if (ssnColIdx >= 0) {
+      const rawSsn = String(cellValue(cells[ssnColIdx]) ?? '').trim().replace(/[\s\-]/g, '');
+      if (!/^\d{9}$/.test(rawSsn)) continue;
+    }
     try {
       employees.push(processEmployee(buildRawRow(cells, fieldMap, special)));
     } catch {
