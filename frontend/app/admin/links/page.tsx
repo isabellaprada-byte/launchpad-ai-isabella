@@ -45,7 +45,7 @@ export default function AdminLinksPage() {
   const [manualEmail, setManualEmail] = useState('');
 
   const [createdBy, setCreatedBy] = useState('');
-  const [sendEmail, setSendEmail] = useState(true);
+  const [sendEmail, setSendEmail] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [newLink, setNewLink] = useState<{ link: string; sponsorName: string } | null>(null);
