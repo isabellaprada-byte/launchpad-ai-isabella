@@ -314,10 +314,10 @@ export default function UploadPage() {
       <div className="bg-white border-b border-slate-200 px-8 py-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+            <div className="flex items-center shrink-0 select-none gap-0.5 leading-none">
+              <span className="text-2xl font-black text-slate-900 tracking-tight leading-none">for</span>
+              <div className="w-[1.85rem] h-[1.85rem] rounded-full bg-slate-900 text-white flex items-center justify-center text-[0.9rem] font-black tracking-tight leading-none">us</div>
+              <span className="text-2xl font-black text-slate-900 tracking-tight leading-none">all</span>
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Census Upload Portal</h1>
