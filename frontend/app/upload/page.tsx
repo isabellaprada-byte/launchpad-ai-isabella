@@ -316,7 +316,7 @@ export default function UploadPage() {
           <div className="flex items-center gap-4">
             <div className="flex items-center shrink-0 select-none leading-none" style={{ fontFamily: 'var(--font-nunito)', fontWeight: 700 }}>
               <span className="text-[1.75rem] text-slate-800 leading-none">for</span>
-              <div className="w-[1.95rem] h-[1.95rem] rounded-full bg-slate-800 text-white flex items-center justify-center text-[1.15rem] leading-none">us</div>
+              <div className="w-[2.05rem] h-[2.05rem] rounded-full bg-slate-800 text-white flex items-center justify-center text-[1.3rem] leading-none">us</div>
               <span className="text-[1.75rem] text-slate-800 leading-none">all</span>
             </div>
             <div>
