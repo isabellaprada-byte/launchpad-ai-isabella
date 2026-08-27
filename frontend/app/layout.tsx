@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 const nunito = Nunito({
   variable: "--font-nunito",
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["400"],
 });
 
 export const metadata: Metadata = {
