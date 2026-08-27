@@ -314,10 +314,10 @@ export default function UploadPage() {
       <div className="bg-white border-b border-slate-200 px-8 py-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex items-center shrink-0 select-none gap-0.5 leading-none" style={{ fontFamily: 'var(--font-nunito)', fontWeight: 800 }}>
-              <span className="text-[1.6rem] text-slate-900 tracking-tight leading-none">for</span>
-              <div className="w-[1.85rem] h-[1.85rem] rounded-full bg-slate-900 text-white flex items-center justify-center text-[0.9rem] tracking-tight leading-none">us</div>
-              <span className="text-[1.6rem] text-slate-900 tracking-tight leading-none">all</span>
+            <div className="flex items-center shrink-0 select-none leading-none" style={{ fontFamily: 'var(--font-nunito)', fontWeight: 800 }}>
+              <span className="text-[1.7rem] text-slate-900 leading-none">for</span>
+              <div className="w-[2rem] h-[2rem] rounded-full bg-[#3a3a3a] text-white flex items-center justify-center text-[1.1rem] leading-none mx-[0.08rem]">us</div>
+              <span className="text-[1.7rem] text-slate-900 leading-none">all</span>
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Census Upload Portal</h1>
