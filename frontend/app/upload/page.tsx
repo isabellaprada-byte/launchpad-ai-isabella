@@ -321,7 +321,7 @@ export default function UploadPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Census Upload Portal</h1>
-              <p className="text-sm font-semibold text-violet-600 mt-0.5">ForUsAll <span className="font-normal text-slate-400">— Implementation Team</span></p>
+              <p className="text-sm text-slate-400 mt-0.5">Implementation Team</p>
             </div>
           </div>
           <button
