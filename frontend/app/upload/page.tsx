@@ -314,11 +314,8 @@ export default function UploadPage() {
       <div className="bg-white border-b border-slate-200 px-8 py-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex items-center shrink-0 select-none leading-none" style={{ fontFamily: 'var(--font-nunito)', fontWeight: 400 }}>
-              <span className="text-[1.75rem] text-slate-800 leading-none">for</span>
-              <div className="w-[2.1rem] h-[2.1rem] rounded-full bg-slate-800 text-white flex items-center justify-center text-[1.75rem] leading-none">us</div>
-              <span className="text-[1.75rem] text-slate-800 leading-none">all</span>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/forusall-logo.svg" alt="ForUsAll" className="h-8 w-auto shrink-0" />
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Census Upload Portal</h1>
               <p className="text-sm text-slate-400 mt-0.5">Implementation Team</p>
