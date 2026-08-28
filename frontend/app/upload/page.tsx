@@ -379,14 +379,14 @@ export default function UploadPage() {
                   <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest">Welcome</p>
                   <h2 className="text-3xl font-bold text-slate-900">{sponsorName}</h2>
                   <p className="text-slate-500 text-base max-w-xl mx-auto">
-                    Your secure census upload page is ready. Please review the instructions below before uploading your file.
+                    Use this secure portal to submit your employee census as part of your 401(k) plan implementation. Before uploading your file, please make sure it includes the required information below for each employee.
                   </p>
                 </div>
               ) : (
               <div className="text-center space-y-2">
-                <h2 className="text-3xl font-bold text-slate-900">Welcome to ForUsAll</h2>
+                <h2 className="text-3xl font-bold text-slate-900">Submit your employee census</h2>
                 <p className="text-slate-500 text-base max-w-xl mx-auto">
-                  This is the secure page to submit your employee census. Please read the instructions below before uploading your file.
+                  Use this secure portal to submit your employee census as part of your 401(k) plan implementation. Before uploading your file, please make sure it includes the required information below for each employee.
                 </p>
               </div>
               )}
@@ -394,9 +394,9 @@ export default function UploadPage() {
               {/* Required fields */}
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
                 <div>
-                  <p className="font-semibold text-slate-800 text-base">Required information for every participant</p>
+                  <p className="font-semibold text-slate-800 text-base">Required information for each employee</p>
                   <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
-                    The fields below are <span className="font-medium text-slate-700">requested for every participant</span> in your census. This information is what we need to correctly enroll every participant, verify their eligibility and vesting schedule, and deliver required plan notices — keeping your 401(k) plan fully compliant from day one.
+                    We use this information to determine employee eligibility and vesting and to deliver required plan communications. Please include all fields below for every employee in your file.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -417,7 +417,7 @@ export default function UploadPage() {
                     { icon: '🏠', label: 'Address, City, State & ZIP',    note: '' },
                     { icon: '📅', label: 'Date of Birth',                 note: 'Format: MM/DD/YYYY' },
                     { icon: '📅', label: 'Date of Hire',                  note: 'Format: MM/DD/YYYY' },
-                    { icon: '✉️', label: 'Email',                         note: 'Work email preferred' },
+                    { icon: '✉️', label: 'Email Address',                  note: 'Work email preferred; personal email is acceptable' },
                     { icon: '📞', label: 'Phone Number',                  note: 'e.g. (555) 555-1234' },
                   ].map(({ icon, label, note }) => (
                     <div key={label} className="flex items-start gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3">
@@ -439,8 +439,8 @@ export default function UploadPage() {
                   <p className="text-xs text-slate-400">PDFs are not accepted.</p>
                 </div>
                 <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-1.5">
-                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">What happens next</p>
-                  <p className="text-sm text-slate-700">We will verify that all information is complete and accurate for each participant before processing your census.</p>
+                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">What happens after you upload?</p>
+                  <p className="text-sm text-slate-700">We&apos;ll review your file to make sure the required information is present and properly formatted. If we need anything, a member of the Implementation Team will contact you before your census is processed.</p>
                 </div>
               </div>
 
@@ -450,7 +450,7 @@ export default function UploadPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-700">Our template includes additional optional columns.</span> Fields like gender, middle initial, division, termination date, rehire date, and contribution amounts are not required — but if you have them, please include them. The more complete your file, the richer the picture we have of your workforce and the smoother your onboarding will be.
+                  <span className="font-medium text-slate-700">You don&apos;t need to use our template.</span> You can upload your existing Excel or CSV file as long as it includes all required fields listed above. Our template also includes optional fields — gender, middle initial, division, termination date, rehire date, and contribution amounts. If you have that information, please include it to help us complete your plan setup more efficiently.
                 </p>
               </div>
 
@@ -463,7 +463,7 @@ export default function UploadPage() {
                   <div className="space-y-1.5">
                     <p className="text-sm font-semibold text-amber-900">Additional info needed — Conversion plan</p>
                     <p className="text-sm text-amber-800 leading-relaxed">
-                      Since this is a conversion from a previous provider, please make sure your census includes the <strong>previous savings rate</strong> for each participant if you can get them.
+                      Since this is a conversion from a previous provider, please make sure your census includes the <strong>previous savings rate</strong> for each employee if available.
                     </p>
                     <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
                       <li>Terminated employees <strong>with a remaining balance</strong> should be included — yes, they are mandatory.</li>
@@ -489,7 +489,7 @@ export default function UploadPage() {
                   className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-base font-semibold"
                   onClick={() => setStep('input')}
                 >
-                  I'm ready — upload my file →
+                  Upload census file →
                 </Button>
               </div>
             </div>
